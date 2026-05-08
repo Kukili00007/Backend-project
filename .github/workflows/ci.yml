@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: leanstock_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d leanstock_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      APP_ENV: test
+      SECRET_KEY: ci-secret-key-at-least-32-characters-long
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/leanstock_test
+      REDIS_URL: redis://localhost:6379/15
+      CORS_ORIGINS: http://localhost:3000
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+      REFRESH_TOKEN_EXPIRE_DAYS: 7
+      RESERVATION_TTL_SECONDS: 900
+      AUTH_RATE_LIMIT_PER_MINUTE: 5
+      DECAY_START_DAYS: 30
+      DECAY_INTERVAL_HOURS: 72
+      DECAY_DISCOUNT_PCT: 10
+      CELERY_BROKER_URL: redis://localhost:6379/1
+      CELERY_RESULT_BACKEND: redis://localhost:6379/2
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Migrate
+        run: alembic upgrade head
+
+      - name: Test
+        run: pytest
+
+      - name: Docker build
+        run: docker build .
+
