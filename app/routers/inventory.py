@@ -13,13 +13,19 @@ from app.database import get_session
 from app.dependencies import get_settings_dependency
 from app.models.user import User, UserRole
 from app.schemas import (
+    ForecastPageResponse,
     InventoryAdjustRequest,
     InventoryItemResponse,
     InventoryPageResponse,
     ReservationRequest,
     ReservationResponse,
 )
-from app.services.inventory_service import adjust_inventory, list_inventory, reserve_stock
+from app.services.inventory_service import (
+    adjust_inventory,
+    forecast_reorder_suggestions,
+    list_inventory,
+    reserve_stock,
+)
 
 router = APIRouter(prefix="/inventory", tags=["Inventory"])
 
@@ -47,6 +53,31 @@ async def read_inventory(
         decay_status=decay_status,
         low_stock_only=low_stock_only,
         sku=sku,
+    )
+
+
+@router.get("/forecast", response_model=ForecastPageResponse)
+async def read_reorder_forecast(
+    cursor: str | None = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=100),
+    warehouse_id: uuid.UUID | None = Query(default=None),
+    forecast_window_days: int = Query(default=30, ge=1, le=365),
+    lead_time_days: int = Query(default=7, ge=1, le=120),
+    reorder_only: bool = Query(default=False),
+    current_user: User = Depends(
+        require_roles(UserRole.TENANT_ADMIN, UserRole.WAREHOUSE_MANAGER, UserRole.ANALYST)
+    ),
+    session: AsyncSession = Depends(get_session),
+) -> ForecastPageResponse:
+    return await forecast_reorder_suggestions(
+        session=session,
+        tenant_id=current_user.tenant_id,
+        cursor=cursor,
+        limit=limit,
+        warehouse_id=warehouse_id,
+        forecast_window_days=forecast_window_days,
+        lead_time_days=lead_time_days,
+        reorder_only=reorder_only,
     )
 
 
@@ -79,4 +110,3 @@ async def reserve_inventory_endpoint(
         tenant_id=current_user.tenant_id,
         request=payload,
     )
-

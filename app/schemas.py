@@ -8,6 +8,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
+from app.models.procurement import PurchaseOrderStatus
 from app.models.transfer import TransferStatus
 from app.models.user import UserRole
 
@@ -114,6 +115,12 @@ class WarehouseCreateRequest(BaseModel):
     location: str | None = Field(default=None, max_length=500)
 
 
+class WarehouseUpdateRequest(BaseModel):
+    name: str | None = Field(default=None, min_length=2, max_length=255)
+    location: str | None = Field(default=None, max_length=500)
+    is_active: bool | None = None
+
+
 class WarehouseResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -122,6 +129,13 @@ class WarehouseResponse(BaseModel):
     name: str
     location: str | None
     is_active: bool
+
+
+class WarehousePageResponse(BaseModel):
+    next_cursor: str | None
+    has_more: bool
+    total_count: int
+    data: list[WarehouseResponse]
 
 
 class ProductVariantCreateRequest(BaseModel):
@@ -147,6 +161,22 @@ class ProductCreateRequest(BaseModel):
     category: str | None = Field(default=None, max_length=100, examples=["Clothing"])
     unit_of_measure: Literal["pcs", "kg", "pack"] = "pcs"
     variants: list[ProductVariantCreateRequest] = Field(min_length=1)
+
+
+class ProductUpdateRequest(BaseModel):
+    name: str | None = Field(default=None, min_length=2, max_length=255)
+    category: str | None = Field(default=None, max_length=100)
+    unit_of_measure: Literal["pcs", "kg", "pack"] | None = None
+    is_active: bool | None = None
+
+
+class ProductVariantUpdateRequest(BaseModel):
+    color: str | None = Field(default=None, max_length=50)
+    size: str | None = Field(default=None, max_length=50)
+    barcode: str | None = Field(default=None, max_length=50)
+    cost_price: Decimal | None = Field(default=None, ge=0, decimal_places=2)
+    selling_price: Decimal | None = Field(default=None, ge=0, decimal_places=2)
+    liquidation_floor_price: Decimal | None = Field(default=None, ge=0, decimal_places=2)
 
 
 class ProductVariantResponse(BaseModel):
@@ -230,6 +260,29 @@ class InventoryPageResponse(BaseModel):
     data: list[InventoryItemResponse]
 
 
+class ForecastSuggestionResponse(BaseModel):
+    inventory_item_id: uuid.UUID
+    warehouse_id: uuid.UUID
+    variant_id: uuid.UUID
+    sku: str
+    product_name: str
+    current_quantity: int
+    reorder_threshold: int
+    forecast_window_days: int
+    lead_time_days: int
+    observed_outgoing_units: int
+    average_daily_demand: Decimal
+    recommended_reorder_quantity: int
+    urgency: Literal["none", "watch", "reorder_now"]
+
+
+class ForecastPageResponse(BaseModel):
+    next_cursor: str | None
+    has_more: bool
+    total_count: int
+    data: list[ForecastSuggestionResponse]
+
+
 class TransferCreateRequest(BaseModel):
     request_id: str = Field(min_length=1, max_length=100, examples=["txfr-20260413-001"])
     from_warehouse_id: uuid.UUID
@@ -292,3 +345,77 @@ class EmailJobPageResponse(BaseModel):
 class DecayRunResponse(BaseModel):
     marked_liquidating: int
     discounted: int
+
+
+class SupplierCreateRequest(BaseModel):
+    name: str = Field(min_length=2, max_length=255, examples=["Almaty Textile Supply"])
+    contact_email: EmailStr | None = Field(default=None, examples=["orders@supplier.kz"])
+    phone: str | None = Field(default=None, max_length=50, examples=["+77001234567"])
+    lead_time_days: int = Field(default=7, ge=1, le=120)
+
+
+class SupplierUpdateRequest(BaseModel):
+    name: str | None = Field(default=None, min_length=2, max_length=255)
+    contact_email: EmailStr | None = None
+    phone: str | None = Field(default=None, max_length=50)
+    lead_time_days: int | None = Field(default=None, ge=1, le=120)
+    is_active: bool | None = None
+
+
+class SupplierResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    tenant_id: uuid.UUID
+    name: str
+    contact_email: EmailStr | None
+    phone: str | None
+    lead_time_days: int
+    is_active: bool
+    created_at: datetime
+
+
+class SupplierPageResponse(BaseModel):
+    next_cursor: str | None
+    has_more: bool
+    total_count: int
+    data: list[SupplierResponse]
+
+
+class PurchaseOrderCreateRequest(BaseModel):
+    po_number: str = Field(min_length=1, max_length=100, examples=["PO-2026-001"])
+    supplier_id: uuid.UUID
+    warehouse_id: uuid.UUID
+    variant_id: uuid.UUID
+    quantity: int = Field(ge=1, examples=[25])
+    expected_unit_cost: Decimal = Field(ge=0, decimal_places=2, examples=[2100.00])
+
+
+class PurchaseOrderReceiveRequest(BaseModel):
+    received_quantity: int | None = Field(default=None, ge=1)
+
+
+class PurchaseOrderResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    tenant_id: uuid.UUID
+    po_number: str
+    supplier_id: uuid.UUID
+    warehouse_id: uuid.UUID
+    variant_id: uuid.UUID
+    quantity: int
+    expected_unit_cost: Decimal
+    status: PurchaseOrderStatus
+    created_by: uuid.UUID
+    submitted_at: datetime | None
+    confirmed_at: datetime | None
+    received_at: datetime | None
+    created_at: datetime
+
+
+class PurchaseOrderPageResponse(BaseModel):
+    next_cursor: str | None
+    has_more: bool
+    total_count: int
+    data: list[PurchaseOrderResponse]

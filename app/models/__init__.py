@@ -1,5 +1,6 @@
 from app.models.audit import AuditLog
 from app.models.email import EmailJob, EmailJobStatus, EmailVerificationToken, PasswordResetToken
+from app.models.procurement import PurchaseOrder, PurchaseOrderStatus, Supplier
 from app.models.product import Product, ProductVariant
 from app.models.tenant import Tenant
 from app.models.transfer import StockTransfer, TransferStatus
@@ -15,7 +16,10 @@ __all__ = [
     "Product",
     "ProductVariant",
     "PasswordResetToken",
+    "PurchaseOrder",
+    "PurchaseOrderStatus",
     "StockTransfer",
+    "Supplier",
     "Tenant",
     "TransferStatus",
     "User",

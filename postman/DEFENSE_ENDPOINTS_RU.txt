@@ -1,0 +1,790 @@
+LeanStock - шпаргалка по Postman для защиты
+
+Важно:
+- baseUrl = http://localhost:8000
+- Все токены и id копируются руками.
+- Если приходит 409 Conflict, меняй уникальные поля: email, tenant_slug, sku, barcode, request_id, order_reference.
+- Для protected endpoint нужен Bearer token.
+
+Переменные, которые обычно заполняются вручную:
+- accessToken
+- tenantAdminAccessToken
+- managerAccessToken
+- refreshToken
+- verificationToken
+- managerVerificationToken
+- passwordResetToken
+- sourceWarehouseId
+- destinationWarehouseId
+- productId
+- variantId
+- transferId
+- cancelTransferId
+
+==================================================================
+1. HEALTH CHECK
+==================================================================
+Endpoint:
+GET /health
+
+Для чего:
+Проверка, что API вообще живо.
+
+Authorization:
+Не нужен.
+
+Body:
+Не нужен.
+
+Что показать:
+200 OK
+
+==================================================================
+2. REGISTER TENANT ADMIN
+==================================================================
+Endpoint:
+POST /v1/auth/register
+
+Для чего:
+Создает первого пользователя tenant и сам tenant.
+
+Authorization:
+Не нужен.
+
+Body:
+{
+  "email": "kukaprokz+owner7@gmail.com",
+  "password": "Secur3P@ss!",
+  "name": "Aibek Dzhaksybekov",
+  "role": "tenant_admin",
+  "tenant_name": "Arzan Shop",
+  "tenant_slug": "arzan-shop-7"
+}
+
+Что важно:
+- email должен быть новым
+- tenant_slug должен быть новым
+
+==================================================================
+3. VERIFY EMAIL
+==================================================================
+Endpoint:
+POST /v1/auth/verify-email
+
+Для чего:
+Подтверждает email после регистрации.
+
+Authorization:
+Не нужен.
+
+Body:
+{
+  "token": "сюда_токен_из_письма"
+}
+
+Что важно:
+- token копируешь из письма
+
+==================================================================
+4. RESEND VERIFICATION
+==================================================================
+Endpoint:
+POST /v1/auth/resend-verification
+
+Для чего:
+Повторно отправляет письмо подтверждения, если прошлое не пришло или истекло.
+
+Authorization:
+Не нужен.
+
+Body:
+{
+  "email": "kukaprokz+owner7@gmail.com"
+}
+
+==================================================================
+5. LOGIN TENANT ADMIN
+==================================================================
+Endpoint:
+POST /v1/auth/login
+
+Для чего:
+Логинит пользователя и выдает access token + refresh token.
+
+Authorization:
+Не нужен.
+
+Body:
+{
+  "email": "kukaprokz+owner7@gmail.com",
+  "password": "Secur3P@ss!"
+}
+
+Что скопировать из ответа:
+- access_token -> accessToken
+- access_token -> tenantAdminAccessToken
+- refresh_token -> refreshToken
+
+==================================================================
+6. REFRESH TOKEN
+==================================================================
+Endpoint:
+POST /v1/auth/refresh
+
+Для чего:
+Обновляет access token и ротирует refresh token.
+
+Authorization:
+Не нужен.
+
+Body:
+{
+  "refresh_token": "{{refreshToken}}"
+}
+
+Что скопировать из ответа:
+- access_token -> accessToken
+- refresh_token -> refreshToken
+
+Что говорить:
+Старый refresh token инвалидируется, новый выдается заново.
+
+==================================================================
+7. LOGOUT
+==================================================================
+Endpoint:
+POST /v1/auth/logout
+
+Для чего:
+Инвалидирует текущий refresh token.
+
+Authorization:
+Bearer {{accessToken}}
+
+Body:
+{
+  "refresh_token": "{{refreshToken}}"
+}
+
+Что показать:
+204 No Content
+
+==================================================================
+8. PASSWORD RESET REQUEST
+==================================================================
+Endpoint:
+POST /v1/auth/password-reset/request
+
+Для чего:
+Отправляет письмо для сброса пароля.
+
+Authorization:
+Не нужен.
+
+Body:
+{
+  "email": "kukaprokz+owner7@gmail.com"
+}
+
+==================================================================
+9. PASSWORD RESET CONFIRM
+==================================================================
+Endpoint:
+POST /v1/auth/password-reset/confirm
+
+Для чего:
+Меняет пароль по токену из письма.
+
+Authorization:
+Не нужен.
+
+Body:
+{
+  "token": "{{passwordResetToken}}",
+  "new_password": "N3wSecur3P@ss!"
+}
+
+==================================================================
+10. LOGIN AFTER PASSWORD RESET
+==================================================================
+Endpoint:
+POST /v1/auth/login
+
+Для чего:
+Показать, что новый пароль уже работает.
+
+Authorization:
+Не нужен.
+
+Body:
+{
+  "email": "kukaprokz+owner7@gmail.com",
+  "password": "N3wSecur3P@ss!"
+}
+
+==================================================================
+11. REGISTER WAREHOUSE MANAGER
+==================================================================
+Endpoint:
+POST /v1/auth/register
+
+Для чего:
+Tenant admin создает сотрудника склада.
+
+Authorization:
+Bearer {{accessToken}}
+
+Body:
+{
+  "email": "kukaprokz+manager7@gmail.com",
+  "password": "Secur3P@ss!",
+  "name": "Warehouse Manager",
+  "role": "warehouse_manager"
+}
+
+Что важно:
+- manager создается уже внутри существующего tenant
+
+==================================================================
+12. VERIFY MANAGER EMAIL
+==================================================================
+Endpoint:
+POST /v1/auth/verify-email
+
+Для чего:
+Подтверждает email manager.
+
+Authorization:
+Не нужен.
+
+Body:
+{
+  "token": "{{managerVerificationToken}}"
+}
+
+==================================================================
+13. LOGIN WAREHOUSE MANAGER
+==================================================================
+Endpoint:
+POST /v1/auth/login
+
+Для чего:
+Логин warehouse manager.
+
+Authorization:
+Не нужен.
+
+Body:
+{
+  "email": "kukaprokz+manager7@gmail.com",
+  "password": "Secur3P@ss!"
+}
+
+Что скопировать из ответа:
+- access_token -> managerAccessToken
+
+==================================================================
+14. CREATE WAREHOUSE A
+==================================================================
+Endpoint:
+POST /v1/warehouses
+
+Для чего:
+Создает склад-источник.
+
+Authorization:
+Bearer {{accessToken}}
+
+Body:
+{
+  "name": "Warehouse A",
+  "location": "Almaty"
+}
+
+Что скопировать:
+- id -> sourceWarehouseId
+
+==================================================================
+15. CREATE WAREHOUSE B
+==================================================================
+Endpoint:
+POST /v1/warehouses
+
+Для чего:
+Создает склад-получатель.
+
+Authorization:
+Bearer {{accessToken}}
+
+Body:
+{
+  "name": "Warehouse B",
+  "location": "Astana"
+}
+
+Что скопировать:
+- id -> destinationWarehouseId
+
+==================================================================
+16. LIST WAREHOUSES
+==================================================================
+Endpoint:
+GET /v1/warehouses
+
+Для чего:
+Показывает список складов с пагинацией.
+
+Authorization:
+Bearer {{accessToken}}
+
+Body:
+Не нужен.
+
+Что показать:
+- data
+- total_count
+- has_more
+- next_cursor
+
+==================================================================
+17. CREATE PRODUCT
+==================================================================
+Endpoint:
+POST /v1/products
+
+Для чего:
+Создает товар и его вариант.
+
+Authorization:
+Bearer {{accessToken}}
+
+Body:
+{
+  "name": "Classic T-Shirt",
+  "category": "Clothing",
+  "unit_of_measure": "pcs",
+  "variants": [
+    {
+      "sku": "TSHIRT-RED-L-7",
+      "color": "Red",
+      "size": "L",
+      "barcode": "4870000000072",
+      "cost_price": 2100,
+      "selling_price": 4990,
+      "liquidation_floor_price": 2990
+    }
+  ]
+}
+
+Что скопировать:
+- id -> productId
+- variants[0].id -> variantId
+
+Что важно:
+- sku должен быть уникальным
+- barcode лучше тоже менять
+
+==================================================================
+18. MANAGER CREATE PRODUCT 403
+==================================================================
+Endpoint:
+POST /v1/products
+
+Для чего:
+Показать RBAC: manager не может создавать товар.
+
+Authorization:
+Bearer {{managerAccessToken}}
+
+Body:
+{
+  "name": "Forbidden Product",
+  "category": "Clothing",
+  "unit_of_measure": "pcs",
+  "variants": [
+    {
+      "sku": "FORBIDDEN-SKU-7",
+      "color": "Black",
+      "size": "M",
+      "cost_price": 1000,
+      "selling_price": 2500,
+      "liquidation_floor_price": 1500
+    }
+  ]
+}
+
+Что показать:
+403 Forbidden
+
+==================================================================
+19. LIST PRODUCTS
+==================================================================
+Endpoint:
+GET /v1/products
+
+Для чего:
+Показывает список товаров.
+
+Authorization:
+Bearer {{accessToken}}
+
+Body:
+Не нужен.
+
+Что показать:
+- список товаров
+- пагинация
+
+==================================================================
+20. GET PRODUCT
+==================================================================
+Endpoint:
+GET /v1/products/{{productId}}
+
+Для чего:
+Показывает конкретный товар по id.
+
+Authorization:
+Bearer {{accessToken}}
+
+Body:
+Не нужен.
+
+==================================================================
+21. ADJUST INVENTORY
+==================================================================
+Endpoint:
+POST /v1/inventory/adjust
+
+Для чего:
+Добавляет или уменьшает остаток на складе.
+
+Authorization:
+Bearer {{accessToken}}
+
+Body:
+{
+  "variant_id": "{{variantId}}",
+  "warehouse_id": "{{sourceWarehouseId}}",
+  "quantity_delta": 10,
+  "reason": "surplus",
+  "note": "Initial stock for transfer demo"
+}
+
+Что важно:
+- variant_id это UUID варианта, не SKU
+- warehouse_id это UUID склада
+
+==================================================================
+22. LIST INVENTORY
+==================================================================
+Endpoint:
+GET /v1/inventory
+
+Для чего:
+Показывает остатки по складам.
+
+Authorization:
+Bearer {{accessToken}}
+
+Body:
+Не нужен.
+
+Что показать:
+- quantity
+- is_low_stock
+- decay_status
+- current_price
+
+==================================================================
+23. RESERVE INVENTORY
+==================================================================
+Endpoint:
+POST /v1/inventory/reserve
+
+Для чего:
+Временно бронирует часть товара, чтобы не было overselling.
+
+Authorization:
+Bearer {{accessToken}}
+
+Body:
+{
+  "variant_id": "{{variantId}}",
+  "warehouse_id": "{{sourceWarehouseId}}",
+  "quantity": 2,
+  "order_reference": "order-defense-007"
+}
+
+Что говорить:
+Это временная бронь товара с TTL в Redis.
+
+==================================================================
+24. CREATE TRANSFER
+==================================================================
+Endpoint:
+POST /v1/transfers
+
+Для чего:
+Создает перемещение товара между складами.
+
+Authorization:
+Bearer {{accessToken}}
+
+Body:
+{
+  "request_id": "txfr-defense-007",
+  "from_warehouse_id": "{{sourceWarehouseId}}",
+  "to_warehouse_id": "{{destinationWarehouseId}}",
+  "variant_id": "{{variantId}}",
+  "quantity": 5,
+  "note": "Defense transfer demo"
+}
+
+Что скопировать:
+- id -> transferId
+
+Что важно:
+- request_id делай уникальным
+
+==================================================================
+25. LIST TRANSFERS
+==================================================================
+Endpoint:
+GET /v1/transfers
+
+Для чего:
+Показывает список переводов между складами.
+
+Authorization:
+Bearer {{accessToken}}
+
+Body:
+Не нужен.
+
+==================================================================
+26. CONFIRM TRANSFER
+==================================================================
+Endpoint:
+POST /v1/transfers/{{transferId}}/confirm
+
+Для чего:
+Подтверждает получение товара на складе-получателе.
+
+Authorization:
+Bearer {{accessToken}}
+
+Body:
+{
+  "received_quantity": 5
+}
+
+Что говорить:
+После confirm товар принимается на склад-получатель.
+
+==================================================================
+27. CREATE TRANSFER FOR CANCEL
+==================================================================
+Endpoint:
+POST /v1/transfers
+
+Для чего:
+Создает отдельный transfer, который потом будет отменен.
+
+Authorization:
+Bearer {{accessToken}}
+
+Body:
+{
+  "request_id": "txfr-defense-cancel-007",
+  "from_warehouse_id": "{{sourceWarehouseId}}",
+  "to_warehouse_id": "{{destinationWarehouseId}}",
+  "variant_id": "{{variantId}}",
+  "quantity": 1,
+  "note": "Cancel flow demo"
+}
+
+Что скопировать:
+- id -> cancelTransferId
+
+==================================================================
+28. CANCEL TRANSFER
+==================================================================
+Endpoint:
+POST /v1/transfers/{{cancelTransferId}}/cancel
+
+Для чего:
+Отменяет transfer и возвращает товар обратно.
+
+Authorization:
+Bearer {{accessToken}}
+
+Body:
+Не нужен.
+
+==================================================================
+29. LIST EMAIL JOBS
+==================================================================
+Endpoint:
+GET /v1/admin/email-jobs
+
+Для чего:
+Показывает очередь email-задач и их статусы.
+
+Authorization:
+Bearer {{accessToken}}
+
+Body:
+Не нужен.
+
+Что показать:
+- queued
+- sent
+- failed
+- retry_count
+- error_message
+
+==================================================================
+30. TRIGGER DECAY RUN
+==================================================================
+Endpoint:
+POST /v1/admin/decay/run
+
+Для чего:
+Вручную запускает фоновую логику dead-stock decay.
+
+Authorization:
+Bearer {{accessToken}}
+
+Body:
+Не нужен.
+
+Что говорить:
+В продакшене это делает Celery beat по расписанию, а здесь я запускаю вручную для демонстрации.
+
+==================================================================
+31. FORECAST REORDER SUGGESTIONS
+==================================================================
+Endpoint:
+GET /v1/inventory/forecast?reorder_only=false
+
+Для чего:
+Показывает прогноз дозакупки по audit history исходящих движений.
+
+Authorization:
+Bearer {{accessToken}}
+
+Body:
+Не нужен.
+
+Что показать:
+- average_daily_demand
+- recommended_reorder_quantity
+- urgency
+
+==================================================================
+32. CREATE SUPPLIER
+==================================================================
+Endpoint:
+POST /v1/suppliers
+
+Для чего:
+Создает поставщика для закупок.
+
+Authorization:
+Bearer {{accessToken}}
+
+Body:
+{
+  "name": "Almaty Textile Supply",
+  "contact_email": "kukaprokz+supplier7@gmail.com",
+  "phone": "+77001234567",
+  "lead_time_days": 5
+}
+
+Что скопировать:
+- id -> supplierId
+
+==================================================================
+33. CREATE PURCHASE ORDER
+==================================================================
+Endpoint:
+POST /v1/purchase-orders
+
+Для чего:
+Создает заказ поставщику.
+
+Authorization:
+Bearer {{accessToken}}
+
+Body:
+{
+  "po_number": "PO-DEFENSE-007",
+  "supplier_id": "{{supplierId}}",
+  "warehouse_id": "{{sourceWarehouseId}}",
+  "variant_id": "{{variantId}}",
+  "quantity": 5,
+  "expected_unit_cost": 2100
+}
+
+Что скопировать:
+- id -> purchaseOrderId
+
+==================================================================
+34. SUBMIT / CONFIRM / RECEIVE PURCHASE ORDER
+==================================================================
+Endpoints:
+POST /v1/purchase-orders/{{purchaseOrderId}}/submit
+POST /v1/purchase-orders/{{purchaseOrderId}}/confirm
+POST /v1/purchase-orders/{{purchaseOrderId}}/receive
+
+Для чего:
+Показывает workflow закупки: draft -> submitted -> confirmed -> received.
+
+Authorization:
+Bearer {{accessToken}}
+
+Body для submit:
+Не нужен.
+
+Body для confirm:
+Не нужен.
+
+Body для receive:
+{
+  "received_quantity": 5
+}
+
+Что говорить:
+Receive атомарно добавляет товар на склад через transaction и row lock.
+
+==================================================================
+КРАТКО ПО РОЛЯМ
+==================================================================
+super_admin:
+- системная админ-роль
+- может admin endpoints
+
+tenant_admin:
+- главный пользователь tenant
+- может склады, товары, остатки, резервы, transfers, staff accounts, admin endpoints
+
+warehouse_manager:
+- может работать со складом и transfer
+- не может создавать продукты и склады
+
+analyst:
+- только чтение
+- смотрит склады, товары, остатки, transfers
+
+==================================================================
+КРАТКО ЧТО ГОВОРИТЬ НА ЗАЩИТЕ
+==================================================================
+- JWT access и refresh token реализованы отдельно.
+- Refresh token rotation хранится и контролируется через Redis.
+- Email verification и password reset идут через реальную почту.
+- RBAC проверяет роль пользователя и подтвержден ли email.
+- Reserve inventory нужен, чтобы не продать один и тот же остаток дважды.
+- Transfer работает транзакционно между двумя складами.
+- Decay run это ручной запуск фоновой логики для защиты.
+- Email jobs показывают, что письма отправляются асинхронно через worker.

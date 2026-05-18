@@ -4,7 +4,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, Integer, String
+from sqlalchemy import Column, DateTime, Integer, String, UniqueConstraint
 from sqlmodel import Field, SQLModel
 
 from app.models.common import utcnow
@@ -19,9 +19,10 @@ class TransferStatus(str, enum.Enum):
 
 class StockTransfer(SQLModel, table=True):
     __tablename__ = "stock_transfers"
+    __table_args__ = (UniqueConstraint("tenant_id", "request_id", name="uq_transfer_tenant_request"),)
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    request_id: str = Field(sa_column=Column(String(100), nullable=False, unique=True, index=True))
+    request_id: str = Field(sa_column=Column(String(100), nullable=False, index=True))
     tenant_id: uuid.UUID = Field(foreign_key="tenants.id", nullable=False, index=True)
     from_warehouse_id: uuid.UUID = Field(foreign_key="warehouses.id", nullable=False)
     to_warehouse_id: uuid.UUID = Field(foreign_key="warehouses.id", nullable=False)

@@ -4,6 +4,7 @@ import uuid
 from datetime import timedelta, timezone
 
 from redis.asyncio import Redis
+from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -16,6 +17,7 @@ from app.core.security import (
     generate_secure_token,
     hash_password,
     hash_token,
+    role_value,
     verify_password,
 )
 from app.dependencies import serialize_refresh_session
@@ -36,9 +38,13 @@ from app.services.email_job_service import queue_password_reset_email, queue_ver
 
 
 def _role_creation_forbidden(actor: User | None, requested_role: UserRole) -> bool:
-    if requested_role == UserRole.SUPER_ADMIN:
+    if actor is None and requested_role not in {UserRole.TENANT_ADMIN, UserRole.SUPER_ADMIN}:
         return True
-    if actor is None and requested_role != UserRole.TENANT_ADMIN:
+    if (
+        actor is not None
+        and requested_role == UserRole.SUPER_ADMIN
+        and role_value(actor.role) != UserRole.SUPER_ADMIN.value
+    ):
         return True
     return False
 
@@ -146,6 +152,14 @@ async def register_user(
         )
 
     if current_user is None:
+        if request.role == UserRole.SUPER_ADMIN:
+            user_count = (await session.exec(select(func.count(User.id)))).one()
+            if user_count > 0:
+                raise AppException(
+                    status_code=403,
+                    code="FORBIDDEN",
+                    message="Super admin bootstrap is only allowed before any users exist.",
+                )
         if not request.tenant_name or not request.tenant_slug:
             raise AppException(
                 status_code=400,
@@ -168,7 +182,7 @@ async def register_user(
             email=str(request.email),
             name=request.name,
             hashed_password=hash_password(request.password),
-            role=UserRole.TENANT_ADMIN,
+            role=request.role,
         )
         try:
             session.add(tenant)
@@ -190,7 +204,7 @@ async def register_user(
         await queue_verification_email(session=session, settings=settings, user=user, token=token)
         return UserResponse.model_validate(user)
 
-    if current_user.role not in {UserRole.TENANT_ADMIN, UserRole.SUPER_ADMIN}:
+    if role_value(current_user.role) not in {UserRole.TENANT_ADMIN.value, UserRole.SUPER_ADMIN.value}:
         raise AppException(
             status_code=403,
             code="FORBIDDEN",
@@ -265,7 +279,7 @@ async def refresh_access_token(
     refresh_token: str,
     settings: Settings,
 ) -> TokenResponse:
-    payload = decode_token(refresh_token, settings)
+    payload = decode_token(refresh_token, settings, token_type="refresh")
     if payload.get("typ") != "refresh":
         raise AppException(
             status_code=401,
@@ -320,7 +334,7 @@ async def logout_user(
     current_user: User,
     settings: Settings,
 ) -> None:
-    payload = decode_token(refresh_token, settings)
+    payload = decode_token(refresh_token, settings, token_type="refresh")
     if payload.get("typ") != "refresh":
         raise AppException(
             status_code=401,

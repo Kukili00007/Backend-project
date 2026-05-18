@@ -79,6 +79,18 @@ async def test_protected_endpoint_rejects_missing_token(client: AsyncClient) -> 
     assert response.json()["code"] == "UNAUTHORIZED"
 
 
+async def test_invalid_cursor_returns_standard_400(client: AsyncClient) -> None:
+    await bootstrap_tenant_admin(client)
+    tokens = await login_user(client, email="owner@arzanshop.kz", password="Secur3P@ss!")
+
+    response = await client.get(
+        "/v1/products?cursor=not-a-valid-cursor",
+        headers=auth_headers(tokens["access_token"]),
+    )
+    assert response.status_code == 400
+    assert response.json()["code"] == "INVALID_CURSOR"
+
+
 async def test_login_rate_limit_after_five_attempts(client: AsyncClient) -> None:
     await bootstrap_tenant_admin(client)
 

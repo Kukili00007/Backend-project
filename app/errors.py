@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import FastAPI, Request
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
@@ -40,7 +41,16 @@ def register_exception_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(RequestValidationError)
     async def handle_validation_error(_: Request, exc: RequestValidationError) -> JSONResponse:
-        return JSONResponse(status_code=422, content={"detail": exc.errors()})
+        return JSONResponse(
+            status_code=422,
+            content=jsonable_encoder(
+                _error_payload(
+                    "VALIDATION_ERROR",
+                    "Request validation failed.",
+                    {"errors": exc.errors()},
+                )
+            ),
+        )
 
     @app.exception_handler(Exception)
     async def handle_unexpected_error(_: Request, exc: Exception) -> JSONResponse:
@@ -48,4 +58,3 @@ def register_exception_handlers(app: FastAPI) -> None:
             status_code=500,
             content=_error_payload("INTERNAL_SERVER_ERROR", "Unexpected server error."),
         )
-

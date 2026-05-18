@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 import uuid
 from datetime import timedelta
 from decimal import ROUND_HALF_UP, Decimal
@@ -13,12 +14,15 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.config import Settings
 from app.core.security import role_value
 from app.errors import AppException
+from app.models.audit import AuditLog
 from app.models.common import utcnow
 from app.models.product import Product, ProductVariant
 from app.models.user import User, UserRole
 from app.models.warehouse import InventoryItem, Warehouse
 from app.pagination import decode_cursor, encode_cursor
 from app.schemas import (
+    ForecastPageResponse,
+    ForecastSuggestionResponse,
     InventoryAdjustRequest,
     InventoryItemResponse,
     InventoryPageResponse,
@@ -112,11 +116,12 @@ async def adjust_inventory(
     request: InventoryAdjustRequest,
 ) -> InventoryItemResponse:
     variant = await _get_variant_for_tenant(session, tenant_id, request.variant_id)
-    await _get_warehouse_for_tenant(session, tenant_id, request.warehouse_id)
+    warehouse = await _get_warehouse_for_tenant(session, tenant_id, request.warehouse_id)
     product = (
         await session.exec(select(Product).where(Product.id == variant.product_id, Product.tenant_id == tenant_id))
     ).one()
 
+    should_alert_low_stock = False
     try:
         inventory_item = (
             await session.exec(
@@ -147,6 +152,7 @@ async def adjust_inventory(
             session.add(inventory_item)
 
         before = inventory_item.model_dump()
+        before_quantity = inventory_item.quantity
         next_quantity = inventory_item.quantity + request.quantity_delta
         if next_quantity < 0:
             raise AppException(
@@ -156,6 +162,10 @@ async def adjust_inventory(
             )
 
         inventory_item.quantity = next_quantity
+        should_alert_low_stock = (
+            before_quantity > inventory_item.reorder_threshold
+            and inventory_item.quantity <= inventory_item.reorder_threshold
+        )
         session.add(
             build_audit_log(
                 tenant_id=tenant_id,
@@ -173,7 +183,49 @@ async def adjust_inventory(
         raise
 
     await session.refresh(inventory_item)
+    if should_alert_low_stock:
+        await _queue_low_stock_alerts(
+            session=session,
+            tenant_id=tenant_id,
+            inventory_item=inventory_item,
+            variant=variant,
+            product=product,
+            warehouse=warehouse,
+        )
     return _serialize_inventory_row(inventory_item, variant, product, actor.role)
+
+
+async def _queue_low_stock_alerts(
+    *,
+    session: AsyncSession,
+    tenant_id: uuid.UUID,
+    inventory_item: InventoryItem,
+    variant: ProductVariant,
+    product: Product,
+    warehouse: Warehouse,
+) -> None:
+    from app.services.email_job_service import queue_low_stock_alert_email
+
+    recipients = (
+        await session.exec(
+            select(User).where(
+                User.tenant_id == tenant_id,
+                User.is_active.is_(True),
+                User.email_verified_at.is_not(None),
+            )
+        )
+    ).all()
+    allowed_roles = {UserRole.TENANT_ADMIN.value, UserRole.WAREHOUSE_MANAGER.value}
+    for recipient in recipients:
+        if role_value(recipient.role) in allowed_roles:
+            await queue_low_stock_alert_email(
+                session=session,
+                recipient=recipient,
+                inventory_item=inventory_item,
+                variant=variant,
+                product=product,
+                warehouse=warehouse,
+            )
 
 
 async def list_inventory(
@@ -231,6 +283,108 @@ async def list_inventory(
         for inventory_item, variant, product in rows
     ]
     return InventoryPageResponse(
+        next_cursor=next_cursor,
+        has_more=has_more,
+        total_count=total_count,
+        data=data,
+    )
+
+
+async def forecast_reorder_suggestions(
+    *,
+    session: AsyncSession,
+    tenant_id: uuid.UUID,
+    cursor: str | None,
+    limit: int,
+    warehouse_id: uuid.UUID | None,
+    forecast_window_days: int,
+    lead_time_days: int,
+    reorder_only: bool,
+) -> ForecastPageResponse:
+    decoded_cursor = decode_cursor(cursor)
+    filters = [InventoryItem.tenant_id == tenant_id]
+    if decoded_cursor is not None:
+        filters.append(InventoryItem.id > decoded_cursor)
+    if warehouse_id is not None:
+        filters.append(InventoryItem.warehouse_id == warehouse_id)
+
+    total_count = (await session.exec(select(func.count(InventoryItem.id)).where(*filters))).one()
+    inventory_rows = (
+        await session.exec(
+            select(InventoryItem, ProductVariant, Product)
+            .join(ProductVariant, InventoryItem.variant_id == ProductVariant.id)
+            .join(Product, ProductVariant.product_id == Product.id)
+            .where(*filters, ProductVariant.tenant_id == tenant_id, Product.tenant_id == tenant_id)
+            .order_by(InventoryItem.id.asc())
+            .limit(limit + 1)
+        )
+    ).all()
+
+    has_more = len(inventory_rows) > limit
+    inventory_rows = inventory_rows[:limit]
+    inventory_ids = [row[0].id for row in inventory_rows]
+    cutoff = utcnow() - timedelta(days=forecast_window_days)
+    audit_logs = []
+    if inventory_ids:
+        audit_logs = (
+            await session.exec(
+                select(AuditLog).where(
+                    AuditLog.tenant_id == tenant_id,
+                    AuditLog.entity_type == "inventory_item",
+                    AuditLog.entity_id.in_(inventory_ids),
+                    AuditLog.created_at >= cutoff,
+                )
+            )
+        ).all()
+
+    outgoing_by_inventory: dict[uuid.UUID, int] = {inventory_id: 0 for inventory_id in inventory_ids}
+    for log in audit_logs:
+        before_quantity = (log.before_state or {}).get("quantity")
+        after_quantity = (log.after_state or {}).get("quantity")
+        if isinstance(before_quantity, int) and isinstance(after_quantity, int):
+            outgoing_by_inventory[log.entity_id] += max(before_quantity - after_quantity, 0)
+
+    data: list[ForecastSuggestionResponse] = []
+    for inventory_item, variant, product in inventory_rows:
+        outgoing_units = outgoing_by_inventory.get(inventory_item.id, 0)
+        average_daily_demand = (
+            Decimal(outgoing_units) / Decimal(forecast_window_days)
+        ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        target_stock = average_daily_demand * Decimal(lead_time_days) + Decimal(
+            inventory_item.reorder_threshold
+        )
+        recommended_quantity = max(
+            0,
+            math.ceil(target_stock - Decimal(inventory_item.quantity)),
+        )
+        if inventory_item.quantity <= inventory_item.reorder_threshold:
+            urgency = "reorder_now"
+        elif recommended_quantity > 0:
+            urgency = "watch"
+        else:
+            urgency = "none"
+        if reorder_only and recommended_quantity == 0 and urgency == "none":
+            continue
+        data.append(
+            ForecastSuggestionResponse(
+                inventory_item_id=inventory_item.id,
+                warehouse_id=inventory_item.warehouse_id,
+                variant_id=variant.id,
+                sku=variant.sku,
+                product_name=product.name,
+                current_quantity=inventory_item.quantity,
+                reorder_threshold=inventory_item.reorder_threshold,
+                forecast_window_days=forecast_window_days,
+                lead_time_days=lead_time_days,
+                observed_outgoing_units=outgoing_units,
+                average_daily_demand=average_daily_demand,
+                recommended_reorder_quantity=recommended_quantity,
+                urgency=urgency,
+            )
+        )
+
+    next_cursor = encode_cursor(inventory_rows[-1][0].id) if has_more and inventory_rows else None
+    return ForecastPageResponse(
         next_cursor=next_cursor,
         has_more=has_more,
         total_count=total_count,

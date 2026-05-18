@@ -84,7 +84,7 @@ def create_refresh_token(user: User, settings: Settings, token_id: uuid.UUID | N
         tenant_id=str(user.tenant_id),
         role=role_value(user.role),
         token_type="refresh",
-        secret_key=settings.secret_key,
+        secret_key=settings.effective_refresh_secret_key,
         algorithm=settings.algorithm,
         expires_delta=timedelta(days=settings.refresh_token_expire_days),
         extra={"jti": jti},
@@ -92,9 +92,10 @@ def create_refresh_token(user: User, settings: Settings, token_id: uuid.UUID | N
     return token, jti
 
 
-def decode_token(token: str, settings: Settings) -> dict[str, Any]:
+def decode_token(token: str, settings: Settings, *, token_type: str = "access") -> dict[str, Any]:
+    secret_key = settings.effective_refresh_secret_key if token_type == "refresh" else settings.secret_key
     try:
-        return jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        return jwt.decode(token, secret_key, algorithms=[settings.algorithm])
     except JWTError as exc:
         raise AppException(
             status_code=401,

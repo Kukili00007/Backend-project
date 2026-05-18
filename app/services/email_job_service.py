@@ -9,8 +9,11 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.config import Settings
 from app.models.email import EmailJob, EmailJobStatus
+from app.models.procurement import PurchaseOrder, Supplier
+from app.models.product import Product, ProductVariant
 from app.models.transfer import StockTransfer
 from app.models.user import User
+from app.models.warehouse import InventoryItem, Warehouse
 from app.pagination import decode_cursor, encode_cursor
 from app.schemas import EmailJobPageResponse, EmailJobResponse
 from app.tasks.celery_app import celery_app
@@ -137,7 +140,11 @@ async def queue_transfer_email(
     event: str,
 ) -> EmailJob:
     status_label = "created" if event == "created" else "completed"
-    subject = f"LeanStock transfer {transfer.request_id} {status_label}"
+    subject = (
+        f"LeanStock transfer {transfer.request_id} {status_label}"
+        if event == "created"
+        else f"LeanStock inventory transfer receipt {transfer.request_id}"
+    )
     body_text = (
         f"Hello {recipient.name},\n\n"
         f"Transfer {transfer.request_id} was {status_label}.\n"
@@ -158,7 +165,112 @@ async def queue_transfer_email(
         subject=subject,
         body_text=body_text,
         body_html=body_html,
-        purpose=f"transfer_{event}",
+        purpose="transfer_created" if event == "created" else "inventory_transfer_receipt",
+    )
+
+
+async def queue_low_stock_alert_email(
+    *,
+    session: AsyncSession,
+    recipient: User,
+    inventory_item: InventoryItem,
+    variant: ProductVariant,
+    product: Product,
+    warehouse: Warehouse,
+) -> EmailJob:
+    subject = f"LeanStock low-stock alert: {variant.sku}"
+    body_text = (
+        f"Hello {recipient.name},\n\n"
+        f"{product.name} ({variant.sku}) is at or below its reorder threshold.\n"
+        f"Warehouse: {warehouse.name}\n"
+        f"Current quantity: {inventory_item.quantity}\n"
+        f"Reorder threshold: {inventory_item.reorder_threshold}\n"
+    )
+    body_html = (
+        f"<p>Hello {recipient.name},</p>"
+        f"<p><strong>{product.name}</strong> ({variant.sku}) is at or below its "
+        "reorder threshold.</p>"
+        f"<p>Warehouse: {warehouse.name}<br>Current quantity: {inventory_item.quantity}<br>"
+        f"Reorder threshold: {inventory_item.reorder_threshold}</p>"
+    )
+    return await create_email_job(
+        session=session,
+        tenant_id=recipient.tenant_id,
+        recipient_email=recipient.email,
+        subject=subject,
+        body_text=body_text,
+        body_html=body_html,
+        purpose="low_stock_alert",
+    )
+
+
+async def queue_purchase_order_confirmation_email(
+    *,
+    session: AsyncSession,
+    supplier: Supplier,
+    purchase_order: PurchaseOrder,
+    variant: ProductVariant,
+    warehouse: Warehouse,
+) -> EmailJob | None:
+    if not supplier.contact_email:
+        return None
+    subject = f"LeanStock purchase order {purchase_order.po_number}"
+    body_text = (
+        f"Hello {supplier.name},\n\n"
+        "A purchase order has been submitted from LeanStock.\n"
+        f"PO number: {purchase_order.po_number}\n"
+        f"SKU: {variant.sku}\n"
+        f"Quantity: {purchase_order.quantity}\n"
+        f"Expected unit cost: {purchase_order.expected_unit_cost}\n"
+        f"Ship to warehouse: {warehouse.name}\n"
+    )
+    body_html = (
+        f"<p>Hello {supplier.name},</p>"
+        "<p>A purchase order has been submitted from LeanStock.</p>"
+        f"<p>PO number: <strong>{purchase_order.po_number}</strong><br>"
+        f"SKU: {variant.sku}<br>Quantity: {purchase_order.quantity}<br>"
+        f"Expected unit cost: {purchase_order.expected_unit_cost}<br>"
+        f"Ship to warehouse: {warehouse.name}</p>"
+    )
+    return await create_email_job(
+        session=session,
+        tenant_id=supplier.tenant_id,
+        recipient_email=supplier.contact_email,
+        subject=subject,
+        body_text=body_text,
+        body_html=body_html,
+        purpose="purchase_order_confirmation",
+    )
+
+
+async def queue_decay_alert_email(
+    *,
+    session: AsyncSession,
+    recipient: User,
+    marked_liquidating: int,
+    discounted: int,
+) -> EmailJob:
+    subject = "LeanStock dead-stock decay cycle completed"
+    body_text = (
+        f"Hello {recipient.name},\n\n"
+        "The scheduled dead-stock decay cycle completed for your tenant.\n"
+        f"Items moved to liquidation: {marked_liquidating}\n"
+        f"Liquidation discounts applied: {discounted}\n"
+    )
+    body_html = (
+        f"<p>Hello {recipient.name},</p>"
+        "<p>The scheduled dead-stock decay cycle completed for your tenant.</p>"
+        f"<p>Items moved to liquidation: {marked_liquidating}<br>"
+        f"Liquidation discounts applied: {discounted}</p>"
+    )
+    return await create_email_job(
+        session=session,
+        tenant_id=recipient.tenant_id,
+        recipient_email=recipient.email,
+        subject=subject,
+        body_text=body_text,
+        body_html=body_html,
+        purpose="decay_cycle",
     )
 
 

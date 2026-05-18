@@ -18,9 +18,13 @@ from app.schemas import (
     ProductCreateRequest,
     ProductPageResponse,
     ProductResponse,
+    ProductUpdateRequest,
     ProductVariantResponse,
+    ProductVariantUpdateRequest,
     WarehouseCreateRequest,
+    WarehousePageResponse,
     WarehouseResponse,
+    WarehouseUpdateRequest,
 )
 
 
@@ -69,15 +73,81 @@ async def create_warehouse(
     return WarehouseResponse.model_validate(warehouse)
 
 
-async def list_warehouses(*, session: AsyncSession, tenant_id: uuid.UUID) -> list[WarehouseResponse]:
+async def update_warehouse(
+    *,
+    session: AsyncSession,
+    tenant_id: uuid.UUID,
+    warehouse_id: uuid.UUID,
+    request: WarehouseUpdateRequest,
+) -> WarehouseResponse:
+    warehouse = (
+        await session.exec(
+            select(Warehouse).where(Warehouse.id == warehouse_id, Warehouse.tenant_id == tenant_id)
+        )
+    ).one_or_none()
+    if warehouse is None:
+        raise AppException(status_code=404, code="NOT_FOUND", message="Warehouse not found.")
+
+    updates = request.model_dump(exclude_unset=True)
+    for field, value in updates.items():
+        setattr(warehouse, field, value)
+
+    session.add(warehouse)
+    await session.commit()
+    await session.refresh(warehouse)
+    return WarehouseResponse.model_validate(warehouse)
+
+
+async def deactivate_warehouse(
+    *,
+    session: AsyncSession,
+    tenant_id: uuid.UUID,
+    warehouse_id: uuid.UUID,
+) -> WarehouseResponse:
+    warehouse = (
+        await session.exec(
+            select(Warehouse).where(Warehouse.id == warehouse_id, Warehouse.tenant_id == tenant_id)
+        )
+    ).one_or_none()
+    if warehouse is None:
+        raise AppException(status_code=404, code="NOT_FOUND", message="Warehouse not found.")
+    warehouse.is_active = False
+    session.add(warehouse)
+    await session.commit()
+    await session.refresh(warehouse)
+    return WarehouseResponse.model_validate(warehouse)
+
+
+async def list_warehouses(
+    *,
+    session: AsyncSession,
+    tenant_id: uuid.UUID,
+    cursor: str | None,
+    limit: int,
+) -> WarehousePageResponse:
+    decoded_cursor = decode_cursor(cursor)
+    filters = [Warehouse.tenant_id == tenant_id, Warehouse.is_active.is_(True)]
+    if decoded_cursor is not None:
+        filters.append(Warehouse.id > decoded_cursor)
+
+    total_count = (await session.exec(select(func.count(Warehouse.id)).where(*filters))).one()
     warehouses = (
         await session.exec(
             select(Warehouse)
-            .where(Warehouse.tenant_id == tenant_id, Warehouse.is_active.is_(True))
-            .order_by(Warehouse.name.asc())
+            .where(*filters)
+            .order_by(Warehouse.id.asc())
+            .limit(limit + 1)
         )
     ).all()
-    return [WarehouseResponse.model_validate(warehouse) for warehouse in warehouses]
+    has_more = len(warehouses) > limit
+    warehouses = warehouses[:limit]
+    next_cursor = encode_cursor(warehouses[-1].id) if has_more and warehouses else None
+    return WarehousePageResponse(
+        next_cursor=next_cursor,
+        has_more=has_more,
+        total_count=total_count,
+        data=[WarehouseResponse.model_validate(warehouse) for warehouse in warehouses],
+    )
 
 
 async def create_product(
@@ -127,6 +197,116 @@ async def create_product(
     return _serialize_product(product, variants, current_role)
 
 
+async def update_product(
+    *,
+    session: AsyncSession,
+    tenant_id: uuid.UUID,
+    product_id: uuid.UUID,
+    request: ProductUpdateRequest,
+    current_role: UserRole,
+) -> ProductResponse:
+    product = (
+        await session.exec(
+            select(Product).where(Product.id == product_id, Product.tenant_id == tenant_id)
+        )
+    ).one_or_none()
+    if product is None:
+        raise AppException(status_code=404, code="NOT_FOUND", message="Product not found.")
+
+    updates = request.model_dump(exclude_unset=True)
+    for field, value in updates.items():
+        setattr(product, field, value)
+
+    session.add(product)
+    await session.commit()
+    await session.refresh(product)
+
+    variants = (
+        await session.exec(
+            select(ProductVariant)
+            .where(ProductVariant.product_id == product.id, ProductVariant.tenant_id == tenant_id)
+            .order_by(ProductVariant.sku.asc())
+        )
+    ).all()
+    return _serialize_product(product, variants, current_role)
+
+
+async def update_product_variant(
+    *,
+    session: AsyncSession,
+    tenant_id: uuid.UUID,
+    variant_id: uuid.UUID,
+    request: ProductVariantUpdateRequest,
+    current_role: UserRole,
+) -> ProductVariantResponse:
+    variant = (
+        await session.exec(
+            select(ProductVariant).where(
+                ProductVariant.id == variant_id,
+                ProductVariant.tenant_id == tenant_id,
+            )
+        )
+    ).one_or_none()
+    if variant is None:
+        raise AppException(status_code=404, code="NOT_FOUND", message="Variant not found.")
+
+    updates = request.model_dump(exclude_unset=True)
+    selling_price = updates.get("selling_price", variant.selling_price)
+    floor_price = updates.get("liquidation_floor_price", variant.liquidation_floor_price)
+    if floor_price > selling_price:
+        raise AppException(
+            status_code=400,
+            code="INVALID_PRICE",
+            message="liquidation_floor_price cannot be greater than selling_price.",
+        )
+
+    for field, value in updates.items():
+        setattr(variant, field, value)
+
+    try:
+        session.add(variant)
+        await session.commit()
+    except IntegrityError as exc:
+        await session.rollback()
+        raise AppException(
+            status_code=409,
+            code="VARIANT_CONFLICT",
+            message="Variant barcode or SKU conflicts with an existing variant.",
+        ) from exc
+    await session.refresh(variant)
+    return _serialize_variant(variant, current_role)
+
+
+async def deactivate_product(
+    *,
+    session: AsyncSession,
+    tenant_id: uuid.UUID,
+    product_id: uuid.UUID,
+    current_role: UserRole,
+) -> ProductResponse:
+    product = (
+        await session.exec(
+            select(Product).where(Product.id == product_id, Product.tenant_id == tenant_id)
+        )
+    ).one_or_none()
+    if product is None:
+        raise AppException(status_code=404, code="NOT_FOUND", message="Product not found.")
+
+    product.is_active = False
+    session.add(product)
+    await session.commit()
+    await session.refresh(product)
+
+    variants = (
+        await session.exec(
+            select(ProductVariant)
+            .where(ProductVariant.product_id == product.id, ProductVariant.tenant_id == tenant_id)
+            .order_by(ProductVariant.sku.asc())
+        )
+    ).all()
+    return _serialize_product(product, variants, current_role)
+
+
 async def list_products(
     *,
     session: AsyncSession,
@@ -146,9 +326,7 @@ async def list_products(
     if is_active is not None:
         filters.append(Product.is_active == is_active)
 
-    total_count = (
-        await session.exec(select(func.count(Product.id)).where(Product.tenant_id == tenant_id))
-    ).one()
+    total_count = (await session.exec(select(func.count(Product.id)).where(*filters))).one()
 
     products = (
         await session.exec(

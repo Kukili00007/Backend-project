@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from decimal import ROUND_HALF_UP, Decimal
@@ -9,8 +10,9 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.config import Settings
+from app.core.security import role_value
 from app.models.product import ProductVariant
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.models.warehouse import InventoryItem
 from app.services.audit_service import build_audit_log
 
@@ -42,6 +44,7 @@ async def run_decay_cycle(
     mark_before = now - timedelta(days=settings.decay_start_days)
     discount_before = now - timedelta(hours=settings.decay_interval_hours)
     result = DecayRunResult()
+    tenant_results: dict[uuid.UUID, DecayRunResult] = defaultdict(DecayRunResult)
 
     variant_filters = []
     if tenant_id is not None:
@@ -56,8 +59,15 @@ async def run_decay_cycle(
     user_filters = [User.is_active.is_(True)]
     if tenant_id is not None:
         user_filters.append(User.tenant_id == tenant_id)
-    for user in (await session.exec(select(User).where(*user_filters))).all():
+    users = (await session.exec(select(User).where(*user_filters))).all()
+    for user in users:
         actor_map.setdefault(user.tenant_id, user.id)
+    notification_recipients = [
+        user
+        for user in users
+        if user.email_verified_at is not None
+        and role_value(user.role) in {UserRole.TENANT_ADMIN.value, UserRole.SUPER_ADMIN.value}
+    ]
 
     try:
         mark_filters = [
@@ -69,7 +79,7 @@ async def run_decay_cycle(
             mark_filters.append(InventoryItem.tenant_id == tenant_id)
         to_mark = (
             await session.exec(
-                select(InventoryItem).where(*mark_filters)
+                select(InventoryItem).where(*mark_filters).with_for_update(skip_locked=True)
             )
         ).all()
         for item in to_mark:
@@ -91,6 +101,7 @@ async def run_decay_cycle(
                     )
                 )
             result.marked_liquidating += 1
+            tenant_results[item.tenant_id].marked_liquidating += 1
 
         discount_filters = [
             InventoryItem.decay_status == "liquidating",
@@ -101,7 +112,7 @@ async def run_decay_cycle(
             discount_filters.append(InventoryItem.tenant_id == tenant_id)
         to_discount = (
             await session.exec(
-                select(InventoryItem).where(*discount_filters)
+                select(InventoryItem).where(*discount_filters).with_for_update(skip_locked=True)
             )
         ).all()
         for item in to_discount:
@@ -130,9 +141,24 @@ async def run_decay_cycle(
                     )
                 )
             result.discounted += 1
+            tenant_results[item.tenant_id].discounted += 1
         await session.commit()
     except Exception:
         await session.rollback()
         raise
+
+    if result.marked_liquidating or result.discounted:
+        from app.services.email_job_service import queue_decay_alert_email
+
+        for recipient in notification_recipients:
+            recipient_result = tenant_results.get(recipient.tenant_id)
+            if recipient_result is None:
+                continue
+            await queue_decay_alert_email(
+                session=session,
+                recipient=recipient,
+                marked_liquidating=recipient_result.marked_liquidating,
+                discounted=recipient_result.discounted,
+            )
 
     return result

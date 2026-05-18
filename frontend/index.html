@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LeanStock Defense Demo</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">Final defense demo</p>
+        <h1>LeanStock</h1>
+        <p class="subhead">Multi-tenant inventory, transfers, forecasting, procurement, and queued email workflows.</p>
+      </div>
+      <div class="connection-box">
+        <label for="apiBaseUrl">Backend API</label>
+        <div class="inline">
+          <input id="apiBaseUrl" type="url" />
+          <button id="saveApiBase" type="button">Save</button>
+        </div>
+        <p id="sessionSummary" class="session">No active session</p>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="panel wide">
+        <div class="panel-title">
+          <h2>Response Console</h2>
+          <button id="healthCheck" type="button">Health Check</button>
+        </div>
+        <pre id="output">Ready.</pre>
+      </section>
+
+      <section class="panel">
+        <h2>Auth</h2>
+        <div class="grid two">
+          <label>Email <input id="authEmail" value="kukaprokz+final1@gmail.com" /></label>
+          <label>Password <input id="authPassword" type="password" value="Secur3P@ss!" /></label>
+          <label>Name <input id="authName" value="Aibek Dzhaksybekov" /></label>
+          <label>Tenant slug <input id="tenantSlug" value="arzan-final-1" /></label>
+        </div>
+        <div class="actions">
+          <button id="registerTenant" type="button">Register Tenant Admin</button>
+          <button id="login" type="button">Login</button>
+          <button id="me" type="button">Me</button>
+          <button id="refresh" type="button">Refresh</button>
+          <button id="logout" type="button">Logout</button>
+        </div>
+        <label>Verification token <input id="verificationToken" placeholder="Paste token from email" /></label>
+        <div class="actions">
+          <button id="verifyEmail" type="button">Verify Email</button>
+          <button id="resendVerification" type="button">Resend Verification</button>
+        </div>
+        <label>Password reset token <input id="passwordResetToken" placeholder="Paste token from reset email" /></label>
+        <div class="actions">
+          <button id="requestPasswordReset" type="button">Request Reset</button>
+          <button id="confirmPasswordReset" type="button">Confirm Reset</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>RBAC Staff</h2>
+        <div class="grid two">
+          <label>Manager email <input id="managerEmail" value="kukaprokz+managerfinal1@gmail.com" /></label>
+          <label>Manager token <input id="managerAccessToken" placeholder="Filled after manager login" /></label>
+        </div>
+        <label>Manager verification token <input id="managerVerificationToken" placeholder="Paste token from email" /></label>
+        <div class="actions">
+          <button id="registerManager" type="button">Register Manager</button>
+          <button id="verifyManager" type="button">Verify Manager</button>
+          <button id="loginManager" type="button">Login Manager</button>
+          <button id="managerForbiddenProduct" type="button">Manager Create Product 403</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Warehouses</h2>
+        <div class="grid two">
+          <label>Warehouse A <input id="warehouseAName" value="Warehouse A" /></label>
+          <label>Warehouse B <input id="warehouseBName" value="Warehouse B" /></label>
+          <label>Source warehouse id <input id="sourceWarehouseId" /></label>
+          <label>Destination warehouse id <input id="destinationWarehouseId" /></label>
+        </div>
+        <div class="actions">
+          <button id="createWarehouseA" type="button">Create A</button>
+          <button id="createWarehouseB" type="button">Create B</button>
+          <button id="updateWarehouseA" type="button">Update A</button>
+          <button id="listWarehouses" type="button">List</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Products</h2>
+        <div class="grid two">
+          <label>Product id <input id="productId" /></label>
+          <label>Variant id <input id="variantId" /></label>
+          <label>Product name <input id="productName" value="Classic T-Shirt" /></label>
+          <label>SKU <input id="sku" value="TSHIRT-FINAL-1" /></label>
+        </div>
+        <div class="actions">
+          <button id="createProduct" type="button">Create Product</button>
+          <button id="updateProduct" type="button">Update Product</button>
+          <button id="updateVariant" type="button">Update Variant</button>
+          <button id="listProducts" type="button">List Products</button>
+          <button id="getProduct" type="button">Get Product</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Inventory</h2>
+        <div class="grid two">
+          <label>Adjust quantity <input id="adjustQuantity" type="number" value="10" /></label>
+          <label>Reserve quantity <input id="reserveQuantity" type="number" value="2" /></label>
+          <label>Order reference <input id="orderReference" value="order-final-1" /></label>
+          <label>Lead time days <input id="leadTimeDays" type="number" value="7" /></label>
+        </div>
+        <div class="actions">
+          <button id="adjustInventory" type="button">Adjust</button>
+          <button id="listInventory" type="button">List Inventory</button>
+          <button id="reserveInventory" type="button">Reserve</button>
+          <button id="forecast" type="button">Forecast</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Transfers</h2>
+        <div class="grid two">
+          <label>Transfer id <input id="transferId" /></label>
+          <label>Cancel transfer id <input id="cancelTransferId" /></label>
+          <label>Request id <input id="transferRequestId" value="txfr-final-1" /></label>
+          <label>Quantity <input id="transferQuantity" type="number" value="5" /></label>
+        </div>
+        <div class="actions">
+          <button id="createTransfer" type="button">Create Transfer</button>
+          <button id="confirmTransfer" type="button">Confirm</button>
+          <button id="createCancelTransfer" type="button">Create Cancel Transfer</button>
+          <button id="cancelTransfer" type="button">Cancel</button>
+          <button id="listTransfers" type="button">List Transfers</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Suppliers</h2>
+        <div class="grid two">
+          <label>Supplier id <input id="supplierId" /></label>
+          <label>Supplier name <input id="supplierName" value="Almaty Textile Supply" /></label>
+          <label>Supplier email <input id="supplierEmail" value="kukaprokz+supplierfinal1@gmail.com" /></label>
+          <label>Lead time <input id="supplierLeadTime" type="number" value="5" /></label>
+        </div>
+        <div class="actions">
+          <button id="createSupplier" type="button">Create Supplier</button>
+          <button id="updateSupplier" type="button">Update Supplier</button>
+          <button id="listSuppliers" type="button">List Suppliers</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Purchase Orders</h2>
+        <div class="grid two">
+          <label>PO id <input id="purchaseOrderId" /></label>
+          <label>PO number <input id="poNumber" value="PO-FINAL-1" /></label>
+          <label>PO quantity <input id="poQuantity" type="number" value="5" /></label>
+          <label>Unit cost <input id="poUnitCost" type="number" value="2100" /></label>
+        </div>
+        <div class="actions">
+          <button id="createPurchaseOrder" type="button">Create PO</button>
+          <button id="submitPurchaseOrder" type="button">Submit</button>
+          <button id="confirmPurchaseOrder" type="button">Confirm</button>
+          <button id="receivePurchaseOrder" type="button">Receive</button>
+          <button id="listPurchaseOrders" type="button">List POs</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Admin / Worker</h2>
+        <div class="actions">
+          <button id="listEmailJobs" type="button">List Email Jobs</button>
+          <button id="triggerDecay" type="button">Trigger Decay</button>
+          <a class="button-link" id="swaggerLink" href="http://localhost:8000/docs" target="_blank" rel="noreferrer">Swagger</a>
+        </div>
+      </section>
+    </main>
+
+    <script src="/config.js"></script>
+    <script src="/app.js"></script>
+  </body>
+</html>

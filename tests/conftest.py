@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 import os
 import re
+import sys
 import uuid
 from collections.abc import AsyncIterator
 
@@ -11,24 +13,27 @@ from httpx import ASGITransport, AsyncClient
 from redis.asyncio import from_url
 from sqlmodel import SQLModel
 
-os.environ.setdefault("APP_ENV", "test")
-os.environ.setdefault("SECRET_KEY", "test-secret-key-with-at-least-32-chars")
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
+os.environ["APP_ENV"] = "test"
+os.environ["SECRET_KEY"] = "test-secret-key-with-at-least-32-chars"
 os.environ.setdefault(
-    "DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/leanstock_test"
+    "DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5433/leanstock_test"
 )
 os.environ.setdefault("REDIS_URL", "redis://localhost:6379/15")
-os.environ.setdefault("CORS_ORIGINS", "http://localhost:3000")
-os.environ.setdefault("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
-os.environ.setdefault("REFRESH_TOKEN_EXPIRE_DAYS", "7")
-os.environ.setdefault("RESERVATION_TTL_SECONDS", "900")
-os.environ.setdefault("AUTH_RATE_LIMIT_PER_MINUTE", "5")
-os.environ.setdefault("DECAY_START_DAYS", "30")
-os.environ.setdefault("DECAY_INTERVAL_HOURS", "72")
-os.environ.setdefault("DECAY_DISCOUNT_PCT", "10")
-os.environ.setdefault("EMAIL_ENABLED", "false")
-os.environ.setdefault("EMAIL_PROVIDER", "gmail_oauth2")
-os.environ.setdefault("GMAIL_SENDER_EMAIL", "tests@example.com")
-os.environ.setdefault("API_BASE_URL", "http://testserver")
+os.environ["CORS_ORIGINS"] = "http://localhost:3000"
+os.environ["ACCESS_TOKEN_EXPIRE_MINUTES"] = "30"
+os.environ["REFRESH_TOKEN_EXPIRE_DAYS"] = "7"
+os.environ["RESERVATION_TTL_SECONDS"] = "900"
+os.environ["AUTH_RATE_LIMIT_PER_MINUTE"] = "5"
+os.environ["DECAY_START_DAYS"] = "30"
+os.environ["DECAY_INTERVAL_HOURS"] = "72"
+os.environ["DECAY_DISCOUNT_PCT"] = "10"
+os.environ["EMAIL_ENABLED"] = "false"
+os.environ["EMAIL_PROVIDER"] = "gmail_oauth2"
+os.environ["GMAIL_SENDER_EMAIL"] = "tests@example.com"
+os.environ["API_BASE_URL"] = "http://testserver"
 
 from app.config import get_settings
 

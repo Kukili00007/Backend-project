@@ -20,7 +20,7 @@ def upgrade() -> None:
         sa.Column("slug", sa.String(length=100), nullable=False),
         sa.Column("plan", sa.String(length=50), nullable=False, server_default="starter"),
         sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.true()),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("CURRENT_TIMESTAMP")),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index("ix_tenants_name", "tenants", ["name"], unique=False)
@@ -35,7 +35,7 @@ def upgrade() -> None:
         sa.Column("hashed_password", sa.Text(), nullable=False),
         sa.Column("role", sa.String(length=50), nullable=False, server_default="analyst"),
         sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.true()),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("CURRENT_TIMESTAMP")),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
         sa.ForeignKeyConstraint(["tenant_id"], ["tenants.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
@@ -126,7 +126,7 @@ def upgrade() -> None:
         "inventory_items",
         ["tenant_id", "last_sold_at"],
         unique=False,
-        postgresql_where=sa.text("decay_status = 'normal'"),
+        postgresql_where=sa.column("decay_status") == "normal",
     )
 
     op.create_table(
@@ -142,7 +142,7 @@ def upgrade() -> None:
         sa.Column("status", sa.String(length=20), nullable=False, server_default="pending"),
         sa.Column("initiated_by", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("confirmed_by", postgresql.UUID(as_uuid=True), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("CURRENT_TIMESTAMP")),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
         sa.Column("completed_at", sa.DateTime(timezone=True), nullable=True),
         sa.CheckConstraint("quantity > 0", name="ck_stock_transfers_quantity_positive"),
         sa.ForeignKeyConstraint(["tenant_id"], ["tenants.id"]),
@@ -166,7 +166,7 @@ def upgrade() -> None:
         sa.Column("entity_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("before_state", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.Column("after_state", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("CURRENT_TIMESTAMP")),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
         sa.ForeignKeyConstraint(["tenant_id"], ["tenants.id"]),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"]),
         sa.PrimaryKeyConstraint("id"),

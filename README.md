@@ -1,6 +1,6 @@
 # LeanStock Backend
 
-LeanStock is a multi-tenant inventory backend built with FastAPI, SQLModel/SQLAlchemy async, PostgreSQL 15, Redis, Celery worker + beat, Alembic migrations, JWT auth, and Argon2 password hashing.
+LeanStock is a multi-tenant inventory full-stack demo built with FastAPI, SQLModel/SQLAlchemy async, PostgreSQL 15, Redis, Celery worker + beat, Alembic migrations, JWT auth, Argon2 password hashing, and a containerized browser frontend under `frontend/`.
 
 The final pre-defense version keeps the original Sprint 1 transfer flow and adds application-level email verification, password reset, Gmail API delivery through Google OAuth2, refresh-token rotation, admin email queue visibility, and manual decay triggering.
 
@@ -12,14 +12,23 @@ The final pre-defense version keeps the original Sprint 1 transfer flow and adds
 - Refresh token rotation: every refresh revokes the old refresh `jti` in Redis and issues a new refresh token.
 - Logout revokes the submitted refresh token.
 - RBAC roles: `super_admin`, `tenant_admin`, `warehouse_manager`, `analyst`.
+- First-user bootstrap can create either a tenant admin or a super admin; later `super_admin` creation requires an existing verified super admin.
 - Unverified users can login, but protected business routes return `403 EMAIL_NOT_VERIFIED`.
-- Shared-schema multi-tenancy with tenant filters on warehouse, product, inventory, transfer, and admin queue reads.
+- Shared-schema multi-tenancy with tenant filters on warehouse, product, inventory, transfer, procurement, and admin queue reads.
+- Tenant-scoped business keys: SKU values and transfer `request_id` values can repeat safely across different tenants.
+- Functional frontend demo for auth, RBAC, catalog, inventory, transfers, suppliers, purchase orders, forecasting, decay, and email jobs.
+- Product and warehouse CRUD with soft deactivation.
 - Atomic stock transfer using PostgreSQL row locks.
+- Supplier CRUD and purchase order workflow: draft -> submitted -> confirmed -> received/cancelled.
+- Purchase order receiving credits inventory in one transaction with row locks.
+- Forecasting endpoint: `GET /v1/inventory/forecast` returns moving-average reorder suggestions from audit history.
 - Async email queue with `email_jobs` status: `queued`, `sent`, `failed`, plus `retry_count` and `error_message`.
 - Gmail API email sender authorized by Google OAuth2 refresh token.
-- Email notifications for verification, password reset, transfer created, and transfer completed.
+- Email notifications for verification, password reset, low-stock alerts, purchase order confirmations, transfer receipts, and dead-stock decay summary alerts.
 - Admin queue endpoint: `GET /v1/admin/email-jobs`.
 - Manual decay endpoint: `POST /v1/admin/decay/run`.
+- Cursor pagination on all list endpoints, including warehouses.
+- Standard error responses documented in `openapi.yaml` for `400`, `401`, `403`, `404`, `409`, `422`, `429`, and `500`.
 - Swagger UI at `/docs` and Postman collection in `postman/`.
 
 ## Important Defense Explanation
@@ -43,6 +52,7 @@ docker compose logs -f api
 
 Open:
 
+- Frontend: [http://localhost:3000](http://localhost:3000)
 - Swagger: [http://localhost:8000/docs](http://localhost:8000/docs)
 - Health: [http://localhost:8000/health](http://localhost:8000/health)
 
@@ -57,6 +67,10 @@ The repository should include:
 - `openapi.yaml`
 - `migrations/`
 - `tests/`
+- `frontend/`
+- `CHECKLIST.txt`
+- `DEPLOYED_URL.txt`
+- `VIDEO_LINK.txt`
 - application source code under `app/`
 - Postman files under `postman/`
 
@@ -68,17 +82,22 @@ docker compose run --rm migrate alembic upgrade head
 
 ## Environment
 
-Docker Compose reads `.env.example` by default. For a real defense run, copy it to `.env` or edit the compose env file values with real secrets.
+Docker Compose reads `.env.example` first and then overlays `.env` if it exists. For a real defense run, copy `.env.example` to `.env` and put real secrets only in `.env`.
 
 Required core values:
 
 | Variable | Purpose |
 | --- | --- |
-| `SECRET_KEY` | JWT signing secret, at least 32 chars |
+| `SECRET_KEY` / `JWT_SECRET_KEY` | JWT access-token signing secret, at least 32 chars |
+| `JWT_REFRESH_SECRET_KEY` | Separate JWT refresh-token signing secret |
 | `DATABASE_URL` | Async PostgreSQL URL |
 | `REDIS_URL` | Redis for rate limits, refresh tokens, reservations, Celery broker |
 | `CELERY_BROKER_URL` | Celery broker, defaults to Redis |
 | `CELERY_RESULT_BACKEND` | Celery result backend, defaults to Redis |
+| `BACKEND_PORT` | Local exposed backend port, defaults to 8000 |
+| `FRONTEND_PORT` | Local exposed frontend port, defaults to 3000 |
+| `APP_ENV` / `ENVIRONMENT` | `development`, `test`, or `production`; production validates real secrets and CORS |
+| `CORS_ORIGINS` | Comma-separated frontend origins allowed by the backend |
 
 Email values:
 
@@ -86,6 +105,8 @@ Email values:
 | --- | --- |
 | `EMAIL_PROVIDER=gmail_oauth2` | Selects Gmail OAuth2 sender |
 | `EMAIL_ENABLED=true` | Enables real Gmail API sending in the worker |
+| `EMAIL_API_KEY` / `SENDGRID_API_KEY` | Kept in `.env.example` for assignment compatibility; Gmail OAuth2 deployments can leave it unused |
+| `EMAIL_FROM_ADDRESS` / `FROM_EMAIL` | Fallback sender address |
 | `GOOGLE_OAUTH_CLIENT_ID` | Google OAuth client ID |
 | `GOOGLE_OAUTH_CLIENT_SECRET` | Google OAuth client secret |
 | `GOOGLE_OAUTH_REFRESH_TOKEN` | Long-lived refresh token for Gmail API access |
@@ -93,6 +114,8 @@ Email values:
 | `GMAIL_SENDER_EMAIL` | Gmail address used in the `From` header |
 | `FRONTEND_BASE_URL` | Used to build verification/reset links |
 | `API_BASE_URL` | Fallback base URL for links |
+
+DeployRocks note: use Docker service names inside URLs, for example `postgres` and `redis`, not `localhost`. Set `FRONTEND_BASE_URL` and `CORS_ORIGINS` to the deployed frontend URL after DeployRocks creates the domain.
 
 ## Gmail OAuth2 Setup
 
@@ -151,19 +174,23 @@ Run in this order:
 18. Create Warehouse B
 19. List Warehouses
 20. Create Product
-21. Manager Create Product 403
-22. List Products
-23. Get Product
-24. Adjust Inventory
-25. List Inventory
-26. Reserve Inventory
-27. Create Transfer
-28. List Transfers
-29. Confirm Transfer
-30. Create Transfer For Cancel
-31. Cancel Transfer
-32. List Email Jobs
-33. Trigger Decay Run
+21. Update Product / Variant
+22. Manager Create Product 403
+23. List Products
+24. Get Product
+25. Adjust Inventory
+26. List Inventory
+27. Reserve Inventory
+28. Forecast Reorder Suggestions
+29. Create Transfer
+30. List Transfers
+31. Confirm Transfer
+32. Create Transfer For Cancel
+33. Cancel Transfer
+34. Create Supplier
+35. Create / Submit / Confirm / Receive Purchase Order
+36. List Email Jobs
+37. Trigger Decay Run
 
 The collection also keeps every implemented endpoint as a separate request so the examiner can randomly pick tabs during oral defense.
 
@@ -176,22 +203,47 @@ ruff check app tests migrations
 pytest
 ```
 
-Or run inside Docker:
+The Docker test service uses an isolated `postgres-test` database, so running tests will not wipe the demo database used by the API:
 
 ```bash
-docker compose up --build -d postgres redis
-docker compose build api
-docker compose run --rm api pytest
+docker compose run --rm test
 ```
+
+## DeployRocks Deployment
+
+1. Push this repository to GitHub.
+2. Open `https://dashboard.deployrocks.com`, connect the repository, and select Docker Compose deployment.
+3. Configure production environment variables from `.env.example`; replace all secrets and Gmail OAuth values.
+4. Set `APP_ENV=production`, `ENVIRONMENT=production`, `EMAIL_ENABLED=true`, and production `CORS_ORIGINS`.
+5. Use service hostnames in URLs: `postgres` for PostgreSQL and `redis` for Redis.
+6. After deployment, open the generated frontend URL, test `/docs` for the backend URL, and put the final frontend domain into `DEPLOYED_URL.txt`.
+
+## Frontend Demo
+
+The frontend is a lightweight browser demo in `frontend/`. It does not mock data. It stores JWTs in browser local storage for the defense demo and calls the configured backend API directly.
+
+Main demo flows:
+
+- Register -> real email verification -> login -> protected pages.
+- Product and warehouse CRUD.
+- Inventory adjust, reserve, low-stock alert, and forecasting.
+- Atomic transfer create/confirm/cancel.
+- Supplier and purchase order create/submit/confirm/receive.
+- Admin email job visibility and manual decay trigger.
 
 ## Architecture Notes
 
 - Business data is tenant-scoped by `current_user.tenant_id`.
+- Product SKUs and transfer idempotency keys are tenant-scoped, so one tenant cannot block another tenant's SKU or transfer request naming.
 - RBAC is enforced in router dependencies; wrong roles return `403`, missing or invalid tokens return `401`.
 - Unverified users are blocked in RBAC-protected business/admin routes.
 - Transfer creation debits source inventory in the same transaction with row locking.
 - Transfer confirmation credits destination inventory and writes audit logs.
+- Purchase order receiving credits inventory in the same transaction with row locking.
+- Dead-stock decay locks inventory rows with `FOR UPDATE SKIP LOCKED` so overlapping worker/admin runs do not double-discount the same row.
+- Forecasting uses audit-log outgoing movement history to calculate average daily demand and reorder recommendations.
 - Refresh token state is stored in Redis by `jti`; rotation deletes the old `jti`.
+- The FastAPI lifespan opens/closes Redis and disposes the SQLAlchemy engine on shutdown.
 - Email token tables store SHA-256 token hashes, not raw tokens.
 - Email job rows are durable and visible to tenant admins through `/v1/admin/email-jobs`.
 - Celery beat runs scheduled dead-stock decay; admins can trigger the same decay logic for their tenant through `/v1/admin/decay/run`.

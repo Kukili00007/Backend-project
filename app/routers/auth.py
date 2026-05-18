@@ -75,7 +75,16 @@ async def login(
     return await login_user(session=session, redis=redis, request=payload, settings=settings)
 
 
-@router.post("/refresh", response_model=TokenResponse)
+@router.get("/me", response_model=UserResponse)
+async def me(current_user: User = Depends(get_current_user)) -> UserResponse:
+    return UserResponse.model_validate(current_user)
+
+
+@router.post(
+    "/refresh",
+    response_model=TokenResponse,
+    dependencies=[Depends(rate_limit_dependency("auth-refresh"))],
+)
 async def refresh(
     payload: RefreshRequest,
     session: AsyncSession = Depends(get_session),
@@ -90,7 +99,11 @@ async def refresh(
     )
 
 
-@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+@router.post(
+    "/logout",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(rate_limit_dependency("auth-logout"))],
+)
 async def logout(
     payload: LogoutRequest,
     current_user: User = Depends(get_current_user),

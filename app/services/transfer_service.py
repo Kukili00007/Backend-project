@@ -93,15 +93,14 @@ async def create_transfer(
         )
 
     existing = (
-        await session.exec(select(StockTransfer).where(StockTransfer.request_id == request.request_id))
+        await session.exec(
+            select(StockTransfer).where(
+                StockTransfer.tenant_id == tenant_id,
+                StockTransfer.request_id == request.request_id,
+            )
+        )
     ).one_or_none()
     if existing is not None:
-        if existing.tenant_id != tenant_id:
-            raise AppException(
-                status_code=409,
-                code="REQUEST_ID_CONFLICT",
-                message="request_id already exists in another tenant scope.",
-            )
         return TransferResponse.model_validate(existing), False
 
     await _assert_tenant_entities_exist(session, tenant_id, request)
@@ -171,7 +170,12 @@ async def create_transfer(
     except IntegrityError:
         await session.rollback()
         existing = (
-            await session.exec(select(StockTransfer).where(StockTransfer.request_id == request.request_id))
+            await session.exec(
+                select(StockTransfer).where(
+                    StockTransfer.tenant_id == tenant_id,
+                    StockTransfer.request_id == request.request_id,
+                )
+            )
         ).one_or_none()
         if existing is None:
             raise
@@ -240,6 +244,15 @@ async def confirm_transfer(
             )
 
         received_quantity = request.received_quantity or transfer.quantity
+        if received_quantity > transfer.quantity:
+            raise AppException(
+                status_code=409,
+                code="TRANSFER_OVER_RECEIVED",
+                message=(
+                    "Received quantity cannot be greater than the quantity that was "
+                    f"sent. Sent {transfer.quantity}, received {received_quantity}."
+                ),
+            )
         destination_inventory = (
             await session.exec(
                 select(InventoryItem)

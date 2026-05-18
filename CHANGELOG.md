@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## Final defense full-stack completion
+
+- Added a containerized `frontend/` demo that consumes the real backend API.
+- Added product/warehouse update and soft-delete endpoints.
+- Added supplier CRUD and purchase order workflow endpoints.
+- Added purchase order receiving with inventory row locking.
+- Added reorder forecasting endpoint based on audit-log movement history.
+- Added low-stock and purchase-order email job enqueueing.
+- Added final submission files: `CHECKLIST.txt`, `DEPLOYED_URL.txt`, and `VIDEO_LINK.txt`.
+- Regenerated `openapi.yaml` from the live FastAPI application.
+- Added migration `004_tenant_scoped_business_keys` so product SKUs and transfer `request_id` values are isolated per tenant.
+- Removed raw SQL text expressions from Alembic migrations; migrations now use SQLAlchemy constructs for defaults and index predicates.
+- Added row locks to dead-stock decay selection so parallel scheduled/manual runs skip rows already being processed.
+- Added SQLAlchemy engine disposal in the FastAPI lifespan shutdown path.
+
 ## Final pre-defense implementation
 
 - Added application-level email verification on signup while keeping LeanStock JWT auth as the login system. Google OAuth2 is used only to authorize Gmail API email sending.

@@ -3,7 +3,7 @@
     "_postman_id": "6b2fd0dc-e5e1-4321-865d-leanstock-final",
     "name": "LeanStock Final Defense - All Endpoints",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Flat defense collection. Open requests in separate tabs before oral defense: auth, business logic, admin queue visibility, and background trigger endpoints."
+    "description": "Manual defense collection. No test scripts or automatic environment updates are included; copy tokens and ids from responses by hand during the defense."
   },
   "item": [
     {
@@ -128,23 +128,7 @@
           "mode": "raw",
           "raw": "{\n  \"email\": \"owner@arzanshop.kz\",\n  \"password\": \"Secur3P@ss!\"\n}"
         }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "if (pm.response.code === 200) {",
-              "  const data = pm.response.json();",
-              "  pm.environment.set('accessToken', data.access_token);",
-              "  pm.environment.set('tenantAdminAccessToken', data.access_token);",
-              "  pm.environment.set('refreshToken', data.refresh_token);",
-              "}"
-            ],
-            "type": "text/javascript"
-          }
-        }
-      ]
+      }
     },
     {
       "name": "Refresh Token",
@@ -171,23 +155,7 @@
           "mode": "raw",
           "raw": "{\n  \"refresh_token\": \"{{refreshToken}}\"\n}"
         }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "if (pm.response.code === 200) {",
-              "  const data = pm.response.json();",
-              "  pm.environment.set('accessToken', data.access_token);",
-              "  pm.environment.set('tenantAdminAccessToken', data.access_token);",
-              "  pm.environment.set('refreshToken', data.refresh_token);",
-              "}"
-            ],
-            "type": "text/javascript"
-          }
-        }
-      ]
+      }
     },
     {
       "name": "Logout",
@@ -218,18 +186,7 @@
           "mode": "raw",
           "raw": "{\n  \"refresh_token\": \"{{refreshToken}}\"\n}"
         }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "if (pm.response.code === 204) { pm.environment.unset('refreshToken'); }"
-            ],
-            "type": "text/javascript"
-          }
-        }
-      ]
+      }
     },
     {
       "name": "Password Reset Request",
@@ -312,23 +269,7 @@
           "mode": "raw",
           "raw": "{\n  \"email\": \"owner@arzanshop.kz\",\n  \"password\": \"N3wSecur3P@ss!\"\n}"
         }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "if (pm.response.code === 200) {",
-              "  const data = pm.response.json();",
-              "  pm.environment.set('accessToken', data.access_token);",
-              "  pm.environment.set('tenantAdminAccessToken', data.access_token);",
-              "  pm.environment.set('refreshToken', data.refresh_token);",
-              "}"
-            ],
-            "type": "text/javascript"
-          }
-        }
-      ]
+      }
     },
     {
       "name": "Register Warehouse Manager",
@@ -413,21 +354,7 @@
           "mode": "raw",
           "raw": "{\n  \"email\": \"manager@arzanshop.kz\",\n  \"password\": \"Secur3P@ss!\"\n}"
         }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "if (pm.response.code === 200) {",
-              "  const data = pm.response.json();",
-              "  pm.environment.set('managerAccessToken', data.access_token);",
-              "}"
-            ],
-            "type": "text/javascript"
-          }
-        }
-      ]
+      }
     },
     {
       "name": "Create Warehouse A",
@@ -457,20 +384,7 @@
           "mode": "raw",
           "raw": "{\n  \"name\": \"Warehouse A\",\n  \"location\": \"Almaty\"\n}"
         }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "if (pm.response.code === 201) {",
-              "  pm.environment.set('sourceWarehouseId', pm.response.json().id);",
-              "}"
-            ],
-            "type": "text/javascript"
-          }
-        }
-      ]
+      }
     },
     {
       "name": "Create Warehouse B",
@@ -500,20 +414,7 @@
           "mode": "raw",
           "raw": "{\n  \"name\": \"Warehouse B\",\n  \"location\": \"Astana\"\n}"
         }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "if (pm.response.code === 201) {",
-              "  pm.environment.set('destinationWarehouseId', pm.response.json().id);",
-              "}"
-            ],
-            "type": "text/javascript"
-          }
-        }
-      ]
+      }
     },
     {
       "name": "List Warehouses",
@@ -565,22 +466,7 @@
           "mode": "raw",
           "raw": "{\n  \"name\": \"Classic T-Shirt\",\n  \"category\": \"Clothing\",\n  \"unit_of_measure\": \"pcs\",\n  \"variants\": [\n    {\n      \"sku\": \"TSHIRT-RED-L\",\n      \"color\": \"Red\",\n      \"size\": \"L\",\n      \"barcode\": \"4870000000012\",\n      \"cost_price\": 2100,\n      \"selling_price\": 4990,\n      \"liquidation_floor_price\": 2990\n    }\n  ]\n}"
         }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "if (pm.response.code === 201) {",
-              "  const data = pm.response.json();",
-              "  pm.environment.set('productId', data.id);",
-              "  pm.environment.set('variantId', data.variants[0].id);",
-              "}"
-            ],
-            "type": "text/javascript"
-          }
-        }
-      ]
+      }
     },
     {
       "name": "Manager Create Product 403",
@@ -769,20 +655,7 @@
           "mode": "raw",
           "raw": "{\n  \"request_id\": \"txfr-defense-001\",\n  \"from_warehouse_id\": \"{{sourceWarehouseId}}\",\n  \"to_warehouse_id\": \"{{destinationWarehouseId}}\",\n  \"variant_id\": \"{{variantId}}\",\n  \"quantity\": 5,\n  \"note\": \"Defense transfer demo\"\n}"
         }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "if (pm.response.code === 200 || pm.response.code === 201) {",
-              "  pm.environment.set('transferId', pm.response.json().id);",
-              "}"
-            ],
-            "type": "text/javascript"
-          }
-        }
-      ]
+      }
     },
     {
       "name": "List Transfers",
@@ -866,20 +739,7 @@
           "mode": "raw",
           "raw": "{\n  \"request_id\": \"txfr-defense-cancel-001\",\n  \"from_warehouse_id\": \"{{sourceWarehouseId}}\",\n  \"to_warehouse_id\": \"{{destinationWarehouseId}}\",\n  \"variant_id\": \"{{variantId}}\",\n  \"quantity\": 1,\n  \"note\": \"Cancel flow demo\"\n}"
         }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "if (pm.response.code === 200 || pm.response.code === 201) {",
-              "  pm.environment.set('cancelTransferId', pm.response.json().id);",
-              "}"
-            ],
-            "type": "text/javascript"
-          }
-        }
-      ]
+      }
     },
     {
       "name": "Cancel Transfer",
@@ -948,6 +808,385 @@
             "admin",
             "decay",
             "run"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Me",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/v1/auth/me",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "auth",
+            "me"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Update Warehouse A",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/v1/warehouses/{{sourceWarehouseId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "warehouses",
+            "{{sourceWarehouseId}}"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"location\": \"Almaty, updated\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Update Product",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/v1/products/{{productId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "products",
+            "{{productId}}"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"category\": \"Apparel\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Update Product Variant",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/v1/products/variants/{{variantId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "products",
+            "variants",
+            "{{variantId}}"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"selling_price\": 4790,\n  \"liquidation_floor_price\": 2990\n}"
+        }
+      }
+    },
+    {
+      "name": "Forecast Reorder Suggestions",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/v1/inventory/forecast?reorder_only=false",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "inventory",
+            "forecast?reorder_only=false"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Create Supplier",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/v1/suppliers",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "suppliers"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Almaty Textile Supply\",\n  \"contact_email\": \"kukaprokz+supplier1@gmail.com\",\n  \"phone\": \"+77001234567\",\n  \"lead_time_days\": 5\n}"
+        }
+      }
+    },
+    {
+      "name": "Update Supplier",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/v1/suppliers/{{supplierId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "suppliers",
+            "{{supplierId}}"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"lead_time_days\": 6\n}"
+        }
+      }
+    },
+    {
+      "name": "List Suppliers",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/v1/suppliers",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "suppliers"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Create Purchase Order",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/v1/purchase-orders",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "purchase-orders"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"po_number\": \"PO-DEFENSE-001\",\n  \"supplier_id\": \"{{supplierId}}\",\n  \"warehouse_id\": \"{{sourceWarehouseId}}\",\n  \"variant_id\": \"{{variantId}}\",\n  \"quantity\": 5,\n  \"expected_unit_cost\": 2100\n}"
+        }
+      }
+    },
+    {
+      "name": "List Purchase Orders",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/v1/purchase-orders",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "purchase-orders"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Submit Purchase Order",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/v1/purchase-orders/{{purchaseOrderId}}/submit",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "purchase-orders",
+            "{{purchaseOrderId}}",
+            "submit"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Confirm Purchase Order",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/v1/purchase-orders/{{purchaseOrderId}}/confirm",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "purchase-orders",
+            "{{purchaseOrderId}}",
+            "confirm"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Receive Purchase Order",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/v1/purchase-orders/{{purchaseOrderId}}/receive",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "purchase-orders",
+            "{{purchaseOrderId}}",
+            "receive"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"received_quantity\": 5\n}"
+        }
+      }
+    },
+    {
+      "name": "Cancel Purchase Order",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/v1/purchase-orders/{{purchaseOrderId}}/cancel",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "purchase-orders",
+            "{{purchaseOrderId}}",
+            "cancel"
           ]
         }
       }

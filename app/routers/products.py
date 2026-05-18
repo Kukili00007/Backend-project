@@ -8,8 +8,22 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.core.rbac import require_roles
 from app.database import get_session
 from app.models.user import User, UserRole
-from app.schemas import ProductCreateRequest, ProductPageResponse, ProductResponse
-from app.services.catalog_service import create_product, get_product, list_products
+from app.schemas import (
+    ProductCreateRequest,
+    ProductPageResponse,
+    ProductResponse,
+    ProductUpdateRequest,
+    ProductVariantResponse,
+    ProductVariantUpdateRequest,
+)
+from app.services.catalog_service import (
+    create_product,
+    deactivate_product,
+    get_product,
+    list_products,
+    update_product,
+    update_product_variant,
+)
 
 router = APIRouter(prefix="/products", tags=["Products"])
 
@@ -50,6 +64,52 @@ async def create_product_endpoint(
     )
 
 
+@router.patch("/{product_id}", response_model=ProductResponse)
+async def update_product_endpoint(
+    product_id: uuid.UUID,
+    payload: ProductUpdateRequest,
+    current_user: User = Depends(require_roles(UserRole.TENANT_ADMIN)),
+    session: AsyncSession = Depends(get_session),
+) -> ProductResponse:
+    return await update_product(
+        session=session,
+        tenant_id=current_user.tenant_id,
+        product_id=product_id,
+        request=payload,
+        current_role=current_user.role,
+    )
+
+
+@router.delete("/{product_id}", response_model=ProductResponse)
+async def delete_product_endpoint(
+    product_id: uuid.UUID,
+    current_user: User = Depends(require_roles(UserRole.TENANT_ADMIN)),
+    session: AsyncSession = Depends(get_session),
+) -> ProductResponse:
+    return await deactivate_product(
+        session=session,
+        tenant_id=current_user.tenant_id,
+        product_id=product_id,
+        current_role=current_user.role,
+    )
+
+
+@router.patch("/variants/{variant_id}", response_model=ProductVariantResponse)
+async def update_product_variant_endpoint(
+    variant_id: uuid.UUID,
+    payload: ProductVariantUpdateRequest,
+    current_user: User = Depends(require_roles(UserRole.TENANT_ADMIN)),
+    session: AsyncSession = Depends(get_session),
+) -> ProductVariantResponse:
+    return await update_product_variant(
+        session=session,
+        tenant_id=current_user.tenant_id,
+        variant_id=variant_id,
+        request=payload,
+        current_role=current_user.role,
+    )
+
+
 @router.get("/{product_id}", response_model=ProductResponse)
 async def read_product(
     product_id: uuid.UUID,
@@ -64,4 +124,3 @@ async def read_product(
         product_id=product_id,
         current_role=current_user.role,
     )
-

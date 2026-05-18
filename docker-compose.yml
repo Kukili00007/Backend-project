@@ -15,6 +15,22 @@ services:
       timeout: 5s
       retries: 10
 
+  postgres-test:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: leanstock_test
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d leanstock_test"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
   redis:
     image: redis:7-alpine
     ports:
@@ -30,7 +46,10 @@ services:
   migrate:
     build: .
     env_file:
-      - .env.example
+      - path: .env.example
+        required: true
+      - path: .env
+        required: false
     depends_on:
       postgres:
         condition: service_healthy
@@ -40,7 +59,10 @@ services:
   api:
     build: .
     env_file:
-      - .env.example
+      - path: .env.example
+        required: true
+      - path: .env
+        required: false
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -49,12 +71,28 @@ services:
       redis:
         condition: service_healthy
     ports:
-      - "8000:8000"
+      - "${BACKEND_PORT:-8000}:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+    environment:
+      API_BASE_URL: ${API_BASE_URL:-http://localhost:8000}
+    depends_on:
+      api:
+        condition: service_started
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
 
   worker:
     build: .
     env_file:
-      - .env.example
+      - path: .env.example
+        required: true
+      - path: .env
+        required: false
+    environment:
+      DATABASE_NULL_POOL: "true"
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -67,7 +105,12 @@ services:
   beat:
     build: .
     env_file:
-      - .env.example
+      - path: .env.example
+        required: true
+      - path: .env
+        required: false
+    environment:
+      DATABASE_NULL_POOL: "true"
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -76,6 +119,28 @@ services:
       redis:
         condition: service_healthy
     command: ["celery", "-A", "app.tasks.celery_app.celery_app", "beat", "--loglevel=INFO"]
+
+  test:
+    build: .
+    env_file:
+      - path: .env.example
+        required: true
+      - path: .env
+        required: false
+    environment:
+      APP_ENV: test
+      SECRET_KEY: test-secret-key-with-at-least-32-chars
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres-test:5432/leanstock_test
+      REDIS_URL: redis://redis:6379/15
+      CORS_ORIGINS: http://localhost:3000
+      EMAIL_ENABLED: "false"
+      GMAIL_SENDER_EMAIL: tests@example.com
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["python", "-m", "pytest"]
 
 volumes:
   postgres_data:
