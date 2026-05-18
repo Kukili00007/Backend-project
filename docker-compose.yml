@@ -17,6 +17,7 @@ services:
 
   postgres-test:
     image: postgres:15-alpine
+    profiles: ["test"]
     environment:
       POSTGRES_DB: leanstock_test
       POSTGRES_USER: postgres
@@ -122,6 +123,7 @@ services:
 
   test:
     build: .
+    profiles: ["test"]
     env_file:
       - path: .env.example
         required: true

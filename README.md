@@ -206,7 +206,7 @@ pytest
 The Docker test service uses an isolated `postgres-test` database, so running tests will not wipe the demo database used by the API:
 
 ```bash
-docker compose run --rm test
+docker compose --profile test run --rm test
 ```
 
 ## DeployRocks Deployment
