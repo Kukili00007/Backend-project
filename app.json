@@ -1,0 +1,24 @@
+{
+  "env": {
+    "ACCESS_TOKEN_EXPIRE_MINUTES": {
+      "description": "Access token expiry in minutes",
+      "value": "30"
+    },
+    "REFRESH_TOKEN_EXPIRE_DAYS": {
+      "description": "Refresh token expiry in days", 
+      "value": "7"
+    },
+    "EMAIL_VERIFICATION_TOKEN_EXPIRE_HOURS": {
+      "description": "Email verification token expiry in hours",
+      "value": "24"
+    },
+    "PASSWORD_RESET_TOKEN_EXPIRE_MINUTES": {
+      "description": "Password reset token expiry in minutes",
+      "value": "15"
+    },
+    "SECRET_KEY": {
+      "description": "JWT secret key",
+      "generator": "secret"
+    }
+  }
+}
