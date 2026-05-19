@@ -1,8 +1,35 @@
 const config = window.LEANSTOCK_CONFIG || {};
 const storageKey = "leanstock-demo-state";
 
+function isLocalApiUrl(value) {
+  return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(value || "");
+}
+
+function isLocalFrontend() {
+  return ["localhost", "127.0.0.1", ""].includes(window.location.hostname);
+}
+
+function deployedApiBaseUrl() {
+  const { protocol, hostname } = window.location;
+  if (!hostname.endsWith(".kazi.rocks")) {
+    return "";
+  }
+  const apiHost = hostname.endsWith("-frontend.kazi.rocks")
+    ? hostname.replace("-frontend.kazi.rocks", "-api.kazi.rocks")
+    : hostname.replace(".kazi.rocks", "-api.kazi.rocks");
+  return `${protocol}//${apiHost}`;
+}
+
+function resolveApiBaseUrl(value) {
+  const configured = (value || "").replace(/\/$/, "");
+  if (configured && (!isLocalApiUrl(configured) || isLocalFrontend())) {
+    return configured;
+  }
+  return deployedApiBaseUrl() || configured || "http://localhost:8000";
+}
+
 const state = {
-  apiBaseUrl: config.apiBaseUrl || "http://localhost:8000",
+  apiBaseUrl: resolveApiBaseUrl(config.apiBaseUrl),
   accessToken: "",
   refreshToken: "",
   tenantAdminAccessToken: "",
@@ -10,6 +37,8 @@ const state = {
   user: null,
   ...JSON.parse(localStorage.getItem(storageKey) || "{}")
 };
+
+state.apiBaseUrl = resolveApiBaseUrl(state.apiBaseUrl);
 
 const $ = (id) => document.getElementById(id);
 
