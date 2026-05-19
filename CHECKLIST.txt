@@ -1,6 +1,6 @@
 [ ] Application is LIVE on dashboard.deployrocks.com with working public URL
 [x] docker compose up boots entire stack (backend + frontend + postgres + redis + worker + beat) locally
-[x] docker compose --profile test run --rm test runs and passes with full test suite
+[x] docker compose -f docker-compose.yml -f docker-compose.test.yml run --rm test runs and passes with full test suite
 [ ] Swagger UI / API docs is accessible on the deployed URL and covers ALL endpoints
 [x] All auth endpoints work on deployed frontend: register, login, logout, refresh, RBAC protected routes
 [x] Email verification sends REAL email on signup using Gmail OAuth2

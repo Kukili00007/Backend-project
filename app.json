@@ -1,7 +1,7 @@
 {
   "env": {
     "APP_ENV": {
-      "description": "Application environment. Use production on DeployRocks.",
+      "description": "Use development for first DeployRocks boot; switch to production after setting real public URLs and email credentials.",
       "value": "development"
     },
     "ENVIRONMENT": {
@@ -9,140 +9,28 @@
       "value": "development"
     },
     "SECRET_KEY": {
-      "description": "JWT access token signing secret. Must be at least 32 characters.",
-      "value": "A5lktBpqB8vIcldCHoqLCe2e2z-QBPgDJP7GjeRcrkmErTJ2Pe8XTfoFZ8UwxgS5"
+      "description": "JWT signing secret. Replace in DeployRocks config before final defense.",
+      "value": "change-me-in-production-minimum-32-chars"
     },
     "JWT_SECRET_KEY": {
       "description": "Compatibility alias for SECRET_KEY.",
-      "value": "VD8eF9Z6A7l69420MdxG-hArG_Z6iKu5iRGDqq6iQ0wL_f8eJw-vlTpoXs_2RFJI"
+      "value": "change-me-in-production-minimum-32-chars"
     },
     "JWT_REFRESH_SECRET_KEY": {
-      "description": "JWT refresh token signing secret. Must be different from SECRET_KEY.",
-      "value": "qJtRqTuc-ZFsnWtpJEyYoS8BaPfclyQBNw9YdMVg-rq-7umka10uxwmZtuMKfRs_"
+      "description": "Refresh token signing secret. Replace in DeployRocks config before final defense.",
+      "value": "change-me-refresh-secret-minimum-32-chars"
     },
-    "ALGORITHM": {
-      "description": "JWT signing algorithm.",
-      "value": "HS256"
-    },
-    "ACCESS_TOKEN_EXPIRE_MINUTES": {
-      "description": "Access token expiry in minutes.",
-      "value": "30"
-    },
-    "REFRESH_TOKEN_EXPIRE_DAYS": {
-      "description": "Refresh token expiry in days.",
-      "value": "7"
-    },
-    "DATABASE_URL": {
-      "description": "PostgreSQL async SQLAlchemy URL. Uses the docker-compose postgres service name.",
-      "value": "postgresql+asyncpg://leanstock:leanstock@postgres:5432/leanstock_db"
-    },
-    "DATABASE_NULL_POOL": {
-      "description": "Use NullPool for worker-style processes only. API should keep pooling enabled.",
+    "EMAIL_ENABLED": {
+      "description": "Keep false for first boot; set true after real Gmail OAuth values are configured.",
       "value": "false"
-    },
-    "REDIS_URL": {
-      "description": "Redis URL. Uses the docker-compose redis service name.",
-      "value": "redis://redis:6379/0"
-    },
-    "CELERY_BROKER_URL": {
-      "description": "Celery broker URL backed by Redis.",
-      "value": "redis://redis:6379/1"
-    },
-    "CELERY_RESULT_BACKEND": {
-      "description": "Celery result backend URL backed by Redis.",
-      "value": "redis://redis:6379/2"
-    },
-    "CORS_ORIGINS": {
-      "description": "Comma-separated frontend origins. Replace with the DeployRocks frontend URL after first deploy.",
-      "value": "http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173"
-    },
-    "BACKEND_PORT": {
-      "description": "Backend service port.",
-      "value": "8000"
-    },
-    "FRONTEND_PORT": {
-      "description": "Frontend service port.",
-      "value": "3000"
-    },
-    "RESERVATION_TTL_SECONDS": {
-      "description": "Redis reservation TTL in seconds.",
-      "value": "900"
-    },
-    "AUTH_RATE_LIMIT_PER_MINUTE": {
-      "description": "Auth endpoint rate limit per minute.",
-      "value": "5"
-    },
-    "DECAY_START_DAYS": {
-      "description": "Number of idle days before stock enters liquidation.",
-      "value": "30"
-    },
-    "DECAY_INTERVAL_HOURS": {
-      "description": "Hours between liquidation discount steps.",
-      "value": "72"
-    },
-    "DECAY_DISCOUNT_PCT": {
-      "description": "Discount percentage applied by each decay cycle.",
-      "value": "10"
-    },
-    "FROM_EMAIL": {
-      "description": "Fallback sender address.",
-      "value": "noreply@leanstock.kz"
-    },
-    "EMAIL_FROM_ADDRESS": {
-      "description": "Assignment-compatible sender email alias.",
-      "value": "noreply@leanstock.kz"
-    },
-    "EMAIL_API_KEY": {
-      "description": "Assignment-compatible email API key. Gmail OAuth2 flow does not use this value.",
-      "value": "replace-with-email-provider-key-if-used"
-    },
-    "SENDGRID_API_KEY": {
-      "description": "Assignment-compatible SendGrid key. Gmail OAuth2 flow does not use this value.",
-      "value": ""
     },
     "EMAIL_PROVIDER": {
       "description": "Configured email provider.",
       "value": "gmail_oauth2"
     },
-    "EMAIL_ENABLED": {
-      "description": "Set to true after adding real Gmail OAuth2 credentials in DeployRocks.",
-      "value": "true"
-    },
-    "GOOGLE_OAUTH_CLIENT_ID": {
-      "description": "Real Google OAuth client ID. Set in DeployRocks dashboard, not in GitHub.",
-      "value": ""
-    },
-    "GOOGLE_OAUTH_CLIENT_SECRET": {
-      "description": "Real Google OAuth client secret. Set in DeployRocks dashboard, not in GitHub.",
-      "value": ""
-    },
-    "GOOGLE_OAUTH_REFRESH_TOKEN": {
-      "description": "Real Google OAuth refresh token. Set in DeployRocks dashboard, not in GitHub.",
-      "value": ""
-    },
-    "GOOGLE_OAUTH_TOKEN_URI": {
-      "description": "Google OAuth token endpoint.",
-      "value": "https://oauth2.googleapis.com/token"
-    },
     "GMAIL_SENDER_EMAIL": {
-      "description": "Verified Gmail sender address. Set to your real sender in DeployRocks.",
-      "value": "kukaprokz@gmail.com"
-    },
-    "FRONTEND_BASE_URL": {
-      "description": "Public frontend URL. Replace with DeployRocks frontend URL after first deploy.",
-      "value": "http://localhost:3000"
-    },
-    "API_BASE_URL": {
-      "description": "Public backend API URL. Replace with DeployRocks backend URL after first deploy.",
-      "value": "http://localhost:8000"
-    },
-    "EMAIL_VERIFICATION_TOKEN_EXPIRE_HOURS": {
-      "description": "Email verification token expiry in hours.",
-      "value": "24"
-    },
-    "PASSWORD_RESET_TOKEN_EXPIRE_MINUTES": {
-      "description": "Password reset token expiry in minutes.",
-      "value": "30"
+      "description": "Verified Gmail sender address. Replace in DeployRocks config.",
+      "value": "your-gmail-address@gmail.com"
     }
   }
 }

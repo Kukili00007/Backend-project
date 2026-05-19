@@ -203,10 +203,10 @@ ruff check app tests migrations
 pytest
 ```
 
-The Docker test service uses an isolated `postgres-test` database, so running tests will not wipe the demo database used by the API:
+The Docker test service uses an isolated `postgres-test` database from `docker-compose.test.yml`, so running tests will not wipe the demo database used by the API:
 
 ```bash
-docker compose --profile test run --rm test
+docker compose -f docker-compose.yml -f docker-compose.test.yml run --rm test
 ```
 
 ## DeployRocks Deployment
