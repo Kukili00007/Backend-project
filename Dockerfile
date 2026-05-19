@@ -23,8 +23,8 @@ WORKDIR /app
 
 COPY --from=builder /opt/venv /opt/venv
 COPY . .
-RUN chmod +x /app/scripts/start.sh
+RUN sed -i 's/\r$//' /app/scripts/start.sh && chmod +x /app/scripts/start.sh
 
 EXPOSE 8000
 
-CMD ["/app/scripts/start.sh"]
+CMD ["sh", "/app/scripts/start.sh"]
