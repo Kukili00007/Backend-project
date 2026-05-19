@@ -43,13 +43,34 @@ class Settings(BaseSettings):
     )
     email_provider: Literal["gmail_oauth2"] = "gmail_oauth2"
     email_enabled: bool = True
-    google_oauth_client_id: str | None = None
-    google_oauth_client_secret: str | None = None
-    google_oauth_refresh_token: str | None = None
-    google_oauth_token_uri: str = "https://oauth2.googleapis.com/token"
-    gmail_sender_email: str | None = None
-    frontend_base_url: str | None = None
-    api_base_url: str = "http://localhost:8000"
+    google_oauth_client_id: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("LEANSTOCK_GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_ID"),
+    )
+    google_oauth_client_secret: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("LEANSTOCK_GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_OAUTH_CLIENT_SECRET"),
+    )
+    google_oauth_refresh_token: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("LEANSTOCK_GOOGLE_OAUTH_REFRESH_TOKEN", "GOOGLE_OAUTH_REFRESH_TOKEN"),
+    )
+    google_oauth_token_uri: str = Field(
+        default="https://oauth2.googleapis.com/token",
+        validation_alias=AliasChoices("LEANSTOCK_GOOGLE_OAUTH_TOKEN_URI", "GOOGLE_OAUTH_TOKEN_URI"),
+    )
+    gmail_sender_email: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("LEANSTOCK_GMAIL_SENDER_EMAIL", "GMAIL_SENDER_EMAIL"),
+    )
+    frontend_base_url: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("LEANSTOCK_FRONTEND_BASE_URL", "FRONTEND_BASE_URL"),
+    )
+    api_base_url: str = Field(
+        default="http://localhost:8000",
+        validation_alias=AliasChoices("LEANSTOCK_API_BASE_URL", "API_BASE_URL"),
+    )
     backend_port: int = Field(default=8000, validation_alias="BACKEND_PORT")
     frontend_port: int = Field(default=3000, validation_alias="FRONTEND_PORT")
     email_verification_token_expire_hours: int = Field(default=24, ge=1)

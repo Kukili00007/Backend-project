@@ -29,8 +29,15 @@ infer_role() {
   printf '%s\n' "api"
 }
 
-ROLE="${SERVICE_ROLE:-$(infer_role)}"
+INFERRED_ROLE="$(infer_role)"
+if [ -n "${SERVICE_ROLE:-}" ] && [ "$SERVICE_ROLE" != "api" ]; then
+  ROLE="$SERVICE_ROLE"
+else
+  ROLE="$INFERRED_ROLE"
+fi
 APP_PORT="${PORT:-8000}"
+
+printf 'LeanStock start role: %s (SERVICE_ROLE=%s, inferred=%s)\n' "$ROLE" "${SERVICE_ROLE:-}" "$INFERRED_ROLE"
 
 start_health_server() {
   python -m http.server "$APP_PORT" >/tmp/leanstock-health.log 2>&1 &
