@@ -20,8 +20,32 @@ function deployedApiBaseUrl() {
   return `${protocol}//${apiHost}`;
 }
 
+function cleanApiBaseUrl(value) {
+  let raw = (value || "").trim();
+  if (!raw) {
+    return "";
+  }
+  if (/^[a-z0-9.-]+\.kazi\.rocks(\/.*)?$/i.test(raw)) {
+    raw = `https://${raw}`;
+  }
+  try {
+    const url = new URL(raw);
+    if (url.hostname.endsWith(".kazi.rocks") && window.location.protocol === "https:") {
+      url.protocol = "https:";
+    }
+    if (url.pathname === "/health" || url.pathname === "/health/") {
+      url.pathname = "";
+    }
+    url.search = "";
+    url.hash = "";
+    return url.toString().replace(/\/$/, "");
+  } catch {
+    return raw.replace(/\/+$/, "");
+  }
+}
+
 function resolveApiBaseUrl(value) {
-  const configured = (value || "").replace(/\/$/, "");
+  const configured = cleanApiBaseUrl(value);
   if (configured && (!isLocalApiUrl(configured) || isLocalFrontend())) {
     return configured;
   }
@@ -158,7 +182,7 @@ document.addEventListener("DOMContentLoaded", () => {
   renderSession();
 
   $("saveApiBase").addEventListener("click", () => {
-    state.apiBaseUrl = getValue("apiBaseUrl").replace(/\/$/, "");
+    state.apiBaseUrl = resolveApiBaseUrl(getValue("apiBaseUrl"));
     saveState();
     output({ apiBaseUrl: state.apiBaseUrl }, "Saved API base URL");
   });
