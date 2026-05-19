@@ -2,7 +2,13 @@ from __future__ import annotations
 
 from httpx import AsyncClient
 
-from tests.conftest import auth_headers, bootstrap_tenant_admin, login_user, unique_email
+from tests.conftest import (
+    auth_headers,
+    bootstrap_tenant_admin,
+    latest_email_job,
+    login_user,
+    unique_email,
+)
 
 
 async def _seed_transfer_ready_stock(
@@ -214,3 +220,42 @@ async def test_sku_and_transfer_request_id_are_tenant_scoped(client: AsyncClient
             },
         )
         assert response.status_code == 201, response.text
+
+
+async def test_transfer_creation_enqueues_email_job(client: AsyncClient, monkeypatch) -> None:
+    await bootstrap_tenant_admin(client)
+    tokens = await login_user(client, email="owner@arzanshop.kz", password="Secur3P@ss!")
+    headers = auth_headers(tokens["access_token"])
+
+    source, destination, variant = await _seed_transfer_ready_stock(
+        client,
+        headers,
+        sku="EMAIL-QUEUE-SKU",
+    )
+
+    queued_tasks: list[tuple[str, list[str] | None]] = []
+
+    def fake_send_task(name: str, args: list[str] | None = None, **kwargs) -> None:
+        queued_tasks.append((name, args))
+
+    monkeypatch.setattr("app.services.email_job_service.celery_app.send_task", fake_send_task)
+
+    response = await client.post(
+        "/v1/transfers",
+        headers=headers,
+        json={
+            "request_id": "txfr-email-job-001",
+            "from_warehouse_id": source,
+            "to_warehouse_id": destination,
+            "variant_id": variant,
+            "quantity": 1,
+            "note": "Prove transfer receipt email is queued through Celery",
+        },
+    )
+
+    assert response.status_code == 201, response.text
+    email_job = await latest_email_job("owner@arzanshop.kz", "transfer_created")
+    assert email_job.status == "queued"
+    assert queued_tasks == [
+        ("app.tasks.email_task.send_email_job", [str(email_job.id)]),
+    ]
