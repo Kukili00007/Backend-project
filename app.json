@@ -30,7 +30,7 @@
     },
     "GMAIL_SENDER_EMAIL": {
       "description": "Verified Gmail sender address. Replace in DeployRocks config.",
-      "value": "kukaprokz@gmail@gmail.com"
+      "value": "kukaprokz@gmail.com"
     }
   }
 }
