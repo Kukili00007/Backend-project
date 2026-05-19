@@ -2,23 +2,23 @@
   "env": {
     "APP_ENV": {
       "description": "Application environment. Use production on DeployRocks.",
-      "value": "production"
+      "value": "development"
     },
     "ENVIRONMENT": {
       "description": "Compatibility alias for APP_ENV.",
-      "value": "production"
+      "value": "development"
     },
     "SECRET_KEY": {
       "description": "JWT access token signing secret. Must be at least 32 characters.",
-      "generator": "secret"
+      "value": "A5lktBpqB8vIcldCHoqLCe2e2z-QBPgDJP7GjeRcrkmErTJ2Pe8XTfoFZ8UwxgS5"
     },
     "JWT_SECRET_KEY": {
       "description": "Compatibility alias for SECRET_KEY.",
-      "generator": "secret"
+      "value": "VD8eF9Z6A7l69420MdxG-hArG_Z6iKu5iRGDqq6iQ0wL_f8eJw-vlTpoXs_2RFJI"
     },
     "JWT_REFRESH_SECRET_KEY": {
       "description": "JWT refresh token signing secret. Must be different from SECRET_KEY.",
-      "generator": "secret"
+      "value": "qJtRqTuc-ZFsnWtpJEyYoS8BaPfclyQBNw9YdMVg-rq-7umka10uxwmZtuMKfRs_"
     },
     "ALGORITHM": {
       "description": "JWT signing algorithm.",
@@ -54,7 +54,7 @@
     },
     "CORS_ORIGINS": {
       "description": "Comma-separated frontend origins. Replace with the DeployRocks frontend URL after first deploy.",
-      "value": "https://replace-with-your-deployrocks-frontend-url"
+      "value": "http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173"
     },
     "BACKEND_PORT": {
       "description": "Backend service port.",
@@ -94,11 +94,11 @@
     },
     "EMAIL_API_KEY": {
       "description": "Assignment-compatible email API key. Gmail OAuth2 flow does not use this value.",
-      "value": "unused-for-gmail-oauth2"
+      "value": "replace-with-email-provider-key-if-used"
     },
     "SENDGRID_API_KEY": {
       "description": "Assignment-compatible SendGrid key. Gmail OAuth2 flow does not use this value.",
-      "value": "unused-for-gmail-oauth2"
+      "value": ""
     },
     "EMAIL_PROVIDER": {
       "description": "Configured email provider.",
@@ -106,19 +106,19 @@
     },
     "EMAIL_ENABLED": {
       "description": "Set to true after adding real Gmail OAuth2 credentials in DeployRocks.",
-      "value": "false"
+      "value": "true"
     },
     "GOOGLE_OAUTH_CLIENT_ID": {
       "description": "Real Google OAuth client ID. Set in DeployRocks dashboard, not in GitHub.",
-      "value": "replace-in-deployrocks-dashboard"
+      "value": ""
     },
     "GOOGLE_OAUTH_CLIENT_SECRET": {
       "description": "Real Google OAuth client secret. Set in DeployRocks dashboard, not in GitHub.",
-      "value": "replace-in-deployrocks-dashboard"
+      "value": ""
     },
     "GOOGLE_OAUTH_REFRESH_TOKEN": {
       "description": "Real Google OAuth refresh token. Set in DeployRocks dashboard, not in GitHub.",
-      "value": "replace-in-deployrocks-dashboard"
+      "value": ""
     },
     "GOOGLE_OAUTH_TOKEN_URI": {
       "description": "Google OAuth token endpoint.",
@@ -126,15 +126,15 @@
     },
     "GMAIL_SENDER_EMAIL": {
       "description": "Verified Gmail sender address. Set to your real sender in DeployRocks.",
-      "value": "replace-in-deployrocks-dashboard@gmail.com"
+      "value": "kukaprokz@gmail.com"
     },
     "FRONTEND_BASE_URL": {
       "description": "Public frontend URL. Replace with DeployRocks frontend URL after first deploy.",
-      "value": "https://replace-with-your-deployrocks-frontend-url"
+      "value": "http://localhost:3000"
     },
     "API_BASE_URL": {
       "description": "Public backend API URL. Replace with DeployRocks backend URL after first deploy.",
-      "value": "https://replace-with-your-deployrocks-backend-url"
+      "value": "http://localhost:8000"
     },
     "EMAIL_VERIFICATION_TOKEN_EXPIRE_HOURS": {
       "description": "Email verification token expiry in hours.",
