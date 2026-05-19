@@ -45,7 +45,7 @@ class GmailOAuth2EmailService:
                 "GOOGLE_OAUTH_CLIENT_ID": self.settings.google_oauth_client_id,
                 "GOOGLE_OAUTH_CLIENT_SECRET": self.settings.google_oauth_client_secret,
                 "GOOGLE_OAUTH_REFRESH_TOKEN": self.settings.google_oauth_refresh_token,
-                "GMAIL_SENDER_EMAIL": self.settings.effective_sender_email,
+                "GMAIL_SENDER_EMAIL": self.settings.gmail_sender_email,
             }.items()
             if not value
         ]

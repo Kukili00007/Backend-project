@@ -28,9 +28,33 @@
       "description": "Configured email provider.",
       "value": "gmail_oauth2"
     },
+    "GOOGLE_OAUTH_CLIENT_ID": {
+      "description": "Google OAuth client ID with Gmail API access. Must match the refresh token.",
+      "value": "replace-with-google-oauth-client-id"
+    },
+    "GOOGLE_OAUTH_CLIENT_SECRET": {
+      "description": "Google OAuth client secret for the same OAuth client.",
+      "value": "replace-with-google-oauth-client-secret"
+    },
+    "GOOGLE_OAUTH_REFRESH_TOKEN": {
+      "description": "Refresh token created with https://www.googleapis.com/auth/gmail.send scope.",
+      "value": "replace-with-google-oauth-refresh-token"
+    },
+    "GOOGLE_OAUTH_TOKEN_URI": {
+      "description": "Google OAuth token endpoint.",
+      "value": "https://oauth2.googleapis.com/token"
+    },
     "GMAIL_SENDER_EMAIL": {
       "description": "Verified Gmail sender address. Replace in DeployRocks config.",
       "value": "kukaprokz@gmail.com"
+    },
+    "FRONTEND_BASE_URL": {
+      "description": "Public frontend URL used in verification and password reset email links.",
+      "value": "https://kukili00007-backend-project.kazi.rocks"
+    },
+    "API_BASE_URL": {
+      "description": "Public API URL fallback used when FRONTEND_BASE_URL is not set.",
+      "value": "https://kukili00007-backend-project-api.kazi.rocks"
     }
   }
 }
