@@ -20,6 +20,10 @@
       "description": "Refresh token signing secret. Replace in DeployRocks config before final defense.",
       "value": "change-me-refresh-secret-minimum-32-chars"
     },
+    "CORS_ORIGINS": {
+      "description": "Comma-separated frontend origins allowed to call the API.",
+      "value": "https://kukili00007-backend-project.kazi.rocks,https://kukili00007-backend-project-frontend.kazi.rocks"
+    },
     "EMAIL_ENABLED": {
       "description": "Keep false for first boot; set true after real Gmail OAuth values are configured.",
       "value": "true"
