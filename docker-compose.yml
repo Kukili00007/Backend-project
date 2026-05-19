@@ -57,8 +57,7 @@ services:
 
   worker:
     build:
-      context: .
-      dockerfile: Dockerfile.worker
+      context: ./deploy/worker
     env_file:
       - path: .env.example
         required: true
@@ -75,8 +74,7 @@ services:
 
   beat:
     build:
-      context: .
-      dockerfile: Dockerfile.beat
+      context: ./deploy/beat
     env_file:
       - path: .env.example
         required: true
