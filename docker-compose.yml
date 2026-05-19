@@ -53,7 +53,7 @@ services:
       api:
         condition: service_started
     ports:
-      - "${FRONTEND_PORT:-3000}:80"
+      - "${FRONTEND_PORT:-3000}:8080"
 
   worker:
     build: .
