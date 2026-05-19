@@ -45,15 +45,27 @@ class Settings(BaseSettings):
     email_enabled: bool = True
     google_oauth_client_id: str | None = Field(
         default=None,
-        validation_alias=AliasChoices("LEANSTOCK_GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_ID"),
+        validation_alias=AliasChoices(
+            "GMAIL_OAUTH_CLIENT_ID",
+            "LEANSTOCK_GOOGLE_OAUTH_CLIENT_ID",
+            "GOOGLE_OAUTH_CLIENT_ID",
+        ),
     )
     google_oauth_client_secret: str | None = Field(
         default=None,
-        validation_alias=AliasChoices("LEANSTOCK_GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_OAUTH_CLIENT_SECRET"),
+        validation_alias=AliasChoices(
+            "GMAIL_OAUTH_CLIENT_CREDENTIAL",
+            "LEANSTOCK_GOOGLE_OAUTH_CLIENT_SECRET",
+            "GOOGLE_OAUTH_CLIENT_SECRET",
+        ),
     )
     google_oauth_refresh_token: str | None = Field(
         default=None,
-        validation_alias=AliasChoices("LEANSTOCK_GOOGLE_OAUTH_REFRESH_TOKEN", "GOOGLE_OAUTH_REFRESH_TOKEN"),
+        validation_alias=AliasChoices(
+            "GMAIL_OAUTH_REFRESH_CREDENTIAL",
+            "LEANSTOCK_GOOGLE_OAUTH_REFRESH_TOKEN",
+            "GOOGLE_OAUTH_REFRESH_TOKEN",
+        ),
     )
     google_oauth_token_uri: str = Field(
         default="https://oauth2.googleapis.com/token",

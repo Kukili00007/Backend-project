@@ -107,10 +107,9 @@ Email values:
 | `EMAIL_ENABLED=true` | Enables real Gmail API sending in the worker |
 | `EMAIL_API_KEY` / `SENDGRID_API_KEY` | Kept in `.env.example` for assignment compatibility; Gmail OAuth2 deployments can leave it unused |
 | `EMAIL_FROM_ADDRESS` / `FROM_EMAIL` | Fallback sender address |
-| `GOOGLE_OAUTH_CLIENT_ID` | Google OAuth client ID |
-| `GOOGLE_OAUTH_CLIENT_SECRET` | Google OAuth client secret |
-| `GOOGLE_OAUTH_REFRESH_TOKEN` | Long-lived refresh token for Gmail API access |
-| `GOOGLE_OAUTH_TOKEN_URI` | Usually `https://oauth2.googleapis.com/token` |
+| `GMAIL_OAUTH_CLIENT_ID` | Google OAuth client ID. `GOOGLE_OAUTH_CLIENT_ID` also works locally. |
+| `GMAIL_OAUTH_CLIENT_CREDENTIAL` | Google OAuth client secret. Use this DeployRocks-safe name to avoid auto-generated bogus values. |
+| `GMAIL_OAUTH_REFRESH_CREDENTIAL` | Long-lived refresh token for Gmail API access. Use this DeployRocks-safe name to avoid auto-generated bogus values. |
 | `GMAIL_SENDER_EMAIL` | Gmail address used in the `From` header |
 | `FRONTEND_BASE_URL` | Used to build verification/reset links |
 | `API_BASE_URL` | Fallback base URL for links |
@@ -141,7 +140,7 @@ curl -X POST https://oauth2.googleapis.com/token \
   -d "redirect_uri=YOUR_REDIRECT_URI"
 ```
 
-8. Put the returned `refresh_token` into `GOOGLE_OAUTH_REFRESH_TOKEN`.
+8. Put the returned `refresh_token` into `GMAIL_OAUTH_REFRESH_CREDENTIAL`.
 
 The Celery worker exchanges this refresh token for short-lived access tokens and calls `users.messages.send` on the Gmail API. API endpoints only create database jobs and enqueue Celery tasks; they do not wait for Gmail.
 
