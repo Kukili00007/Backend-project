@@ -22,7 +22,7 @@
     },
     "EMAIL_ENABLED": {
       "description": "Keep false for first boot; set true after real Gmail OAuth values are configured.",
-      "value": "false"
+      "value": "true"
     },
     "EMAIL_PROVIDER": {
       "description": "Configured email provider.",
@@ -30,7 +30,7 @@
     },
     "GMAIL_SENDER_EMAIL": {
       "description": "Verified Gmail sender address. Replace in DeployRocks config.",
-      "value": "your-gmail-address@gmail.com"
+      "value": "kukaprokz@gmail@gmail.com"
     }
   }
 }
