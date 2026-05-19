@@ -76,6 +76,35 @@ class Settings(BaseSettings):
             return value.replace("postgresql://", "postgresql+asyncpg://", 1)
         return value
 
+    @field_validator(
+        "access_token_expire_minutes",
+        "refresh_token_expire_days",
+        "email_verification_token_expire_hours",
+        "password_reset_token_expire_minutes",
+        mode="before",
+    )
+    @classmethod
+    def normalize_integer_setting(cls, value: object, info) -> int:
+        defaults = {
+            "access_token_expire_minutes": 30,
+            "refresh_token_expire_days": 7,
+            "email_verification_token_expire_hours": 24,
+            "password_reset_token_expire_minutes": 30,
+        }
+        if value in (None, ""):
+            return defaults[info.field_name]
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return defaults[info.field_name]
+
+    @field_validator("google_oauth_token_uri", mode="before")
+    @classmethod
+    def normalize_google_oauth_token_uri(cls, value: str | None) -> str:
+        if not value or not value.startswith(("http://", "https://")):
+            return "https://oauth2.googleapis.com/token"
+        return value
+
     @model_validator(mode="after")
     def validate_production_settings(self) -> "Settings":
         if self.app_env != "production":

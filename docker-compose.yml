@@ -27,19 +27,6 @@ services:
       timeout: 5s
       retries: 10
 
-  migrate:
-    build: .
-    env_file:
-      - path: .env.example
-        required: true
-      - path: .env
-        required: false
-    depends_on:
-      postgres:
-        condition: service_healthy
-    command: ["alembic", "upgrade", "head"]
-    restart: "no"
-
   api:
     build: .
     env_file:
@@ -47,9 +34,9 @@ services:
         required: true
       - path: .env
         required: false
+    environment:
+      SERVICE_ROLE: api
     depends_on:
-      migrate:
-        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
@@ -76,15 +63,13 @@ services:
       - path: .env
         required: false
     environment:
+      SERVICE_ROLE: worker
       DATABASE_NULL_POOL: "true"
     depends_on:
-      migrate:
-        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: ["celery", "-A", "app.tasks.celery_app.celery_app", "worker", "--loglevel=INFO"]
 
   beat:
     build: .
@@ -94,15 +79,13 @@ services:
       - path: .env
         required: false
     environment:
+      SERVICE_ROLE: beat
       DATABASE_NULL_POOL: "true"
     depends_on:
-      migrate:
-        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: ["celery", "-A", "app.tasks.celery_app.celery_app", "beat", "--loglevel=INFO"]
 
 volumes:
   postgres_data:

@@ -216,7 +216,8 @@ docker compose -f docker-compose.yml -f docker-compose.test.yml run --rm test
 3. Configure production environment variables from `.env.example`; replace all secrets and Gmail OAuth values.
 4. Set `APP_ENV=production`, `ENVIRONMENT=production`, `EMAIL_ENABLED=true`, and production `CORS_ORIGINS`.
 5. Use service hostnames in URLs: `postgres` for PostgreSQL and `redis` for Redis.
-6. After deployment, open the generated frontend URL, test `/docs` for the backend URL, and put the final frontend domain into `DEPLOYED_URL.txt`.
+6. The API container runs `alembic upgrade head` on startup. `worker` and `beat` are selected with `SERVICE_ROLE` and expose a lightweight health port for Dokku checks.
+7. After deployment, open the generated frontend URL, test `/docs` for the backend URL, and put the final frontend domain into `DEPLOYED_URL.txt`.
 
 ## Frontend Demo
 
