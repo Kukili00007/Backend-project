@@ -31,22 +31,6 @@
     "GMAIL_SENDER_EMAIL": {
       "description": "Verified Gmail sender address. Replace in DeployRocks config.",
       "value": "kukaprokz@gmail.com"
-    },
-    "GOOGLE_OAUTH_CLIENT_ID": {
-      "description": "Google OAuth2 Client ID for Gmail authentication.",
-      "value": "802821097274-dvac7unv9hi1619ladb7fdg3n2k4gnat.apps.googleusercontent.com"
-    },
-    "GOOGLE_OAUTH_CLIENT_SECRET": {
-      "description": "Google OAuth2 Client Secret. Keep it safe!",
-      "value": "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"
-    },
-    "GOOGLE_OAUTH_REFRESH_TOKEN": {
-      "description": "Long-lived OAuth2 refresh token to generate new access tokens for emailing.",
-      "value": "1//04yCk0AAQkLNwCgYIARAAGAQSNwF-L9IrqL10aaTLOJpq0_FXFG7jEPEm_FI9HU5-FcFyIFG0Cd5QOtTAwcP7dOd3r4wq0v0dbao"
-    },
-    "GOOGLE_OAUTH_TOKEN_URI": {
-      "description": "Google API endpoint to exchange refresh token for an access token.",
-      "value": "https://oauth2.googleapis.com/token"
     }
   }
 }

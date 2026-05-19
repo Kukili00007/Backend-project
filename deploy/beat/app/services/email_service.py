@@ -21,7 +21,7 @@ class GmailOAuth2EmailService:
         body_html: str | None = None,
     ) -> None:
         if not self.settings.email_enabled:
-            return
+            raise RuntimeError("Email delivery is disabled. Set EMAIL_ENABLED=true in DeployRocks env.")
         self._validate_configuration()
         access_token = await self._fetch_access_token()
         raw_message = self._build_raw_message(

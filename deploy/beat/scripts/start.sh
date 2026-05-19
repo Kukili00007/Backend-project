@@ -40,7 +40,35 @@ APP_PORT="${PORT:-8000}"
 printf 'LeanStock start role: %s (SERVICE_ROLE=%s, inferred=%s)\n' "$ROLE" "${SERVICE_ROLE:-}" "$INFERRED_ROLE"
 
 start_health_server() {
-  python -m http.server "$APP_PORT" >/tmp/leanstock-health.log 2>&1 &
+  python - <<'PY' >/tmp/leanstock-health.log 2>&1 &
+import json
+import os
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
+
+class HealthHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path not in ("/", "/health"):
+            self.send_response(404)
+            self.end_headers()
+            return
+        payload = {
+            "status": "ok",
+            "role": os.environ.get("SERVICE_ROLE") or os.environ.get("ROLE") or "unknown",
+        }
+        body = json.dumps(payload).encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, format, *args):
+        return
+
+
+HTTPServer(("0.0.0.0", int(os.environ.get("PORT", "8000"))), HealthHandler).serve_forever()
+PY
 }
 
 case "$ROLE" in

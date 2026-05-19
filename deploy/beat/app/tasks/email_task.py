@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import uuid
 
 from sqlmodel import select
@@ -11,6 +12,8 @@ from app.models.common import utcnow
 from app.models.email import EmailJob, EmailJobStatus
 from app.services.email_service import GmailOAuth2EmailService
 from app.tasks.celery_app import celery_app
+
+logger = logging.getLogger(__name__)
 
 
 def _status_value(status: EmailJobStatus | str) -> str:
@@ -47,6 +50,21 @@ async def _send_email_job(email_job_id: str) -> dict[str, str]:
         if _status_value(job.status) == EmailJobStatus.SENT.value:
             return {"status": "already_sent"}
 
+        logger.info(
+            "Processing email job id=%s purpose=%s recipient=%s email_enabled=%s gmail_configured=%s",
+            job.id,
+            job.purpose,
+            job.recipient_email,
+            settings.email_enabled,
+            all(
+                [
+                    settings.google_oauth_client_id,
+                    settings.google_oauth_client_secret,
+                    settings.google_oauth_refresh_token,
+                    settings.effective_sender_email,
+                ]
+            ),
+        )
         job.retry_count += 1
         job.last_attempt_at = utcnow()
         session.add(job)
@@ -74,6 +92,7 @@ async def _send_email_job(email_job_id: str) -> dict[str, str]:
                 failed_job.last_attempt_at = utcnow()
                 session.add(failed_job)
                 await session.commit()
+        logger.exception("Email job id=%s failed: %s", email_job_id, exc)
         raise
 
     async with async_session_factory() as session:
@@ -90,4 +109,5 @@ async def _send_email_job(email_job_id: str) -> dict[str, str]:
             sent_job.error_message = None
             session.add(sent_job)
             await session.commit()
+    logger.info("Email job id=%s sent", email_job_id)
     return {"status": "sent"}
