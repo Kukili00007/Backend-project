@@ -1,1 +1,1 @@
-TODO: paste the DeployRocks frontend URL here after deployment.
+https://kukili00007-backend-project-frontend.kazi.rocks
