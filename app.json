@@ -25,27 +25,19 @@
       "value": "https://kukili00007-backend-project.kazi.rocks,https://kukili00007-backend-project-frontend.kazi.rocks"
     },
     "EMAIL_ENABLED": {
-      "description": "Keep false for first boot; set true after real Gmail OAuth values are configured.",
+      "description": "Set true after SENDGRID_API_KEY is configured.",
       "value": "true"
     },
     "EMAIL_PROVIDER": {
-      "description": "Configured email provider.",
-      "value": "gmail_oauth2"
+      "description": "Email provider: sendgrid or gmail_oauth2.",
+      "value": "sendgrid"
     },
-    "GMAIL_OAUTH_CLIENT_ID": {
-      "description": "Google OAuth client ID with Gmail API access. Must match the refresh token.",
-      "value": "replace-with-google-oauth-client-id"
+    "SENDGRID_API_KEY": {
+      "description": "SendGrid API key. Get it from sendgrid.com → Settings → API Keys.",
+      "value": "replace-with-sendgrid-api-key"
     },
-    "GMAIL_OAUTH_CLIENT_CREDENTIAL": {
-      "description": "Google OAuth client secret for the same OAuth client.",
-      "value": "replace-with-google-oauth-client-secret"
-    },
-    "GMAIL_OAUTH_REFRESH_CREDENTIAL": {
-      "description": "Refresh token created with https://www.googleapis.com/auth/gmail.send scope.",
-      "value": "replace-with-google-oauth-refresh-token"
-    },
-    "GMAIL_SENDER_EMAIL": {
-      "description": "Verified Gmail sender address. Replace in DeployRocks config.",
+    "FROM_EMAIL": {
+      "description": "Sender email address. Must be verified in SendGrid as Single Sender.",
       "value": "kukaprokz@gmail.com"
     },
     "FRONTEND_BASE_URL": {

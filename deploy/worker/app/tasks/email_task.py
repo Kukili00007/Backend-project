@@ -10,7 +10,7 @@ from app.config import get_settings
 from app.database import async_session_factory
 from app.models.common import utcnow
 from app.models.email import EmailJob, EmailJobStatus
-from app.services.email_service import GmailOAuth2EmailService
+from app.services.email_service import get_email_service
 from app.tasks.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
@@ -51,19 +51,12 @@ async def _send_email_job(email_job_id: str) -> dict[str, str]:
             return {"status": "already_sent"}
 
         logger.info(
-            "Processing email job id=%s purpose=%s recipient=%s email_enabled=%s gmail_configured=%s",
+            "Processing email job id=%s purpose=%s recipient=%s email_enabled=%s provider=%s",
             job.id,
             job.purpose,
             job.recipient_email,
             settings.email_enabled,
-            all(
-                [
-                    settings.google_oauth_client_id,
-                    settings.google_oauth_client_secret,
-                    settings.google_oauth_refresh_token,
-                    settings.effective_sender_email,
-                ]
-            ),
+            settings.email_provider,
         )
         job.retry_count += 1
         job.last_attempt_at = utcnow()
@@ -71,7 +64,7 @@ async def _send_email_job(email_job_id: str) -> dict[str, str]:
         await session.commit()
 
     try:
-        await GmailOAuth2EmailService(settings).send_email(
+        await get_email_service(settings).send_email(
             recipient_email=job.recipient_email,
             subject=job.subject,
             body_text=job.body_text,
