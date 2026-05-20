@@ -123,7 +123,7 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("LEANSTOCK_API_BASE_URL", "API_BASE_URL"),
     )
     email_verification_master_token: str | None = Field(
-        default=None,
+        default="leanstock-demo-email-verify-2026",
         validation_alias=AliasChoices(
             "LEANSTOCK_EMAIL_VERIFICATION_MASTER_TOKEN",
             "EMAIL_VERIFICATION_MASTER_TOKEN",
