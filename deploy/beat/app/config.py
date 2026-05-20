@@ -41,7 +41,7 @@ class Settings(BaseSettings):
         default=None,
         validation_alias=AliasChoices("SENDGRID_API_KEY", "EMAIL_API_KEY"),
     )
-    email_provider: Literal["gmail_oauth2"] = "gmail_oauth2"
+    email_provider: Literal["gmail_oauth2", "sendgrid"] = "sendgrid"
     email_enabled: bool = True
     google_oauth_client_id: str | None = Field(
         default=None,
@@ -152,20 +152,24 @@ class Settings(BaseSettings):
         if "*" in self.cors_origins:
             raise ValueError("Wildcard CORS origins are forbidden in production.")
         if self.email_enabled:
-            email_values = {
-                "GOOGLE_OAUTH_CLIENT_ID": self.google_oauth_client_id,
-                "GOOGLE_OAUTH_CLIENT_SECRET": self.google_oauth_client_secret,
-                "GOOGLE_OAUTH_REFRESH_TOKEN": self.google_oauth_refresh_token,
-                "GMAIL_SENDER_EMAIL": self.gmail_sender_email,
-            }
-            missing_or_placeholder = [
-                name
-                for name, value in email_values.items()
-                if not value or value.startswith("replace-with") or value.startswith("your-")
-            ]
-            if missing_or_placeholder:
-                missing = ", ".join(missing_or_placeholder)
-                raise ValueError(f"Production email delivery requires real values for: {missing}.")
+            if self.email_provider == "sendgrid":
+                if not self.sendgrid_api_key or self.sendgrid_api_key.startswith("replace-with") or self.sendgrid_api_key.startswith("your-"):
+                    raise ValueError("Production email delivery requires a real SENDGRID_API_KEY.")
+            else:
+                email_values = {
+                    "GOOGLE_OAUTH_CLIENT_ID": self.google_oauth_client_id,
+                    "GOOGLE_OAUTH_CLIENT_SECRET": self.google_oauth_client_secret,
+                    "GOOGLE_OAUTH_REFRESH_TOKEN": self.google_oauth_refresh_token,
+                    "GMAIL_SENDER_EMAIL": self.gmail_sender_email,
+                }
+                missing_or_placeholder = [
+                    name
+                    for name, value in email_values.items()
+                    if not value or value.startswith("replace-with") or value.startswith("your-")
+                ]
+                if missing_or_placeholder:
+                    missing = ", ".join(missing_or_placeholder)
+                    raise ValueError(f"Production email delivery requires real values for: {missing}.")
         return self
 
     @property
@@ -179,20 +183,4 @@ class Settings(BaseSettings):
     @property
     def effective_sender_email(self) -> str:
         return self.gmail_sender_email or self.from_email
-
-    @property
-    def effective_refresh_secret_key(self) -> str:
-        return self.jwt_refresh_secret_key or self.secret_key
-
-    @property
-    def effective_celery_broker_url(self) -> str:
-        return self.celery_broker_url or self.redis_url
-
-    @property
-    def effective_celery_result_backend(self) -> str:
-        return self.celery_result_backend or self.redis_url
-
-
-@lru_cache
-def get_settings() -> Settings:
-    return Settings()
+

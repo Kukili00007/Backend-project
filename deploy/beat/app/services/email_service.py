@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-import base64
-from email.message import EmailMessage
-
 import httpx
 
 from app.config import Settings
 
 
-class GmailOAuth2EmailService:
+class SendGridEmailService:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
 
@@ -21,24 +18,54 @@ class GmailOAuth2EmailService:
         body_html: str | None = None,
     ) -> None:
         if not self.settings.email_enabled:
-            raise RuntimeError("Email delivery is disabled. Set EMAIL_ENABLED=true in DeployRocks env.")
-        self._validate_configuration()
-        access_token = await self._fetch_access_token()
-        raw_message = self._build_raw_message(
-            recipient_email=recipient_email,
-            subject=subject,
-            body_text=body_text,
-            body_html=body_html,
-        )
+            raise RuntimeError("Email delivery is disabled. Set EMAIL_ENABLED=true.")
+        if not self.settings.sendgrid_api_key:
+            raise RuntimeError("Missing SENDGRID_API_KEY env var.")
+
+        content = [{"type": "text/plain", "value": body_text}]
+        if body_html:
+            content.append({"type": "text/html", "value": body_html})
+
+        payload = {
+            "personalizations": [{"to": [{"email": recipient_email}]}],
+            "from": {"email": self.settings.effective_sender_email},
+            "subject": subject,
+            "content": content,
+        }
+
         async with httpx.AsyncClient(timeout=20) as client:
             response = await client.post(
-                "https://gmail.googleapis.com/gmail/v1/users/me/messages/send",
-                headers={"Authorization": f"Bearer {access_token}"},
-                json={"raw": raw_message},
+                "https://api.sendgrid.com/v3/mail/send",
+                headers={
+                    "Authorization": f"Bearer {self.settings.sendgrid_api_key}",
+                    "Content-Type": "application/json",
+                },
+                json=payload,
             )
-            response.raise_for_status()
+            if response.status_code not in (200, 202):
+                raise RuntimeError(
+                    f"SendGrid error {response.status_code}: {response.text[:500]}"
+                )
 
-    def _validate_configuration(self) -> None:
+
+# Keep for backwards compatibility
+class GmailOAuth2EmailService:
+    def __init__(self, settings: Settings) -> None:
+        self.settings = settings
+
+    async def send_email(
+        self,
+        *,
+        recipient_email: str,
+        subject: str,
+        body_text: str,
+        body_html: str | None = None,
+    ) -> None:
+        import base64
+        from email.message import EmailMessage
+
+        if not self.settings.email_enabled:
+            raise RuntimeError("Email delivery is disabled. Set EMAIL_ENABLED=true.")
         missing = [
             name
             for name, value in {
@@ -52,9 +79,8 @@ class GmailOAuth2EmailService:
         if missing:
             raise RuntimeError(f"Missing email configuration: {', '.join(missing)}")
 
-    async def _fetch_access_token(self) -> str:
         async with httpx.AsyncClient(timeout=20) as client:
-            response = await client.post(
+            token_response = await client.post(
                 self.settings.google_oauth_token_uri,
                 data={
                     "client_id": self.settings.google_oauth_client_id,
@@ -63,22 +89,11 @@ class GmailOAuth2EmailService:
                     "grant_type": "refresh_token",
                 },
             )
-            response.raise_for_status()
-            payload = response.json()
+            token_response.raise_for_status()
+            access_token = token_response.json().get("access_token")
+            if not access_token:
+                raise RuntimeError("Google OAuth2 did not return access_token.")
 
-        access_token = payload.get("access_token")
-        if not access_token:
-            raise RuntimeError("Google OAuth2 token response did not include access_token.")
-        return str(access_token)
-
-    def _build_raw_message(
-        self,
-        *,
-        recipient_email: str,
-        subject: str,
-        body_text: str,
-        body_html: str | None,
-    ) -> str:
         message = EmailMessage()
         message["To"] = recipient_email
         message["From"] = self.settings.effective_sender_email
@@ -86,4 +101,18 @@ class GmailOAuth2EmailService:
         message.set_content(body_text)
         if body_html:
             message.add_alternative(body_html, subtype="html")
-        return base64.urlsafe_b64encode(message.as_bytes()).decode("ascii")
+        raw = base64.urlsafe_b64encode(message.as_bytes()).decode("ascii")
+
+        async with httpx.AsyncClient(timeout=20) as client:
+            response = await client.post(
+                "https://gmail.googleapis.com/gmail/v1/users/me/messages/send",
+                headers={"Authorization": f"Bearer {access_token}"},
+                json={"raw": raw},
+            )
+            response.raise_for_status()
+
+
+def get_email_service(settings: Settings) -> SendGridEmailService | GmailOAuth2EmailService:
+    if settings.email_provider == "sendgrid":
+        return SendGridEmailService(settings)
+    return GmailOAuth2EmailService(settings)
