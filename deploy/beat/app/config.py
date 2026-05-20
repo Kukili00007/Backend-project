@@ -183,4 +183,20 @@ class Settings(BaseSettings):
     @property
     def effective_sender_email(self) -> str:
         return self.gmail_sender_email or self.from_email
-
+
+    @property
+    def effective_refresh_secret_key(self) -> str:
+        return self.jwt_refresh_secret_key or self.secret_key
+
+    @property
+    def effective_celery_broker_url(self) -> str:
+        return self.celery_broker_url or self.redis_url
+
+    @property
+    def effective_celery_result_backend(self) -> str:
+        return self.celery_result_backend or self.redis_url
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()
