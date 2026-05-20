@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from httpx import AsyncClient
 
+from app.config import get_settings
 from tests.conftest import (
     auth_headers,
     bootstrap_tenant_admin,
@@ -161,6 +162,38 @@ async def test_unverified_user_is_blocked_from_business_routes(client: AsyncClie
     reused = await client.post("/v1/auth/verify-email", json={"token": verification_token})
     assert reused.status_code == 400
     assert reused.json()["code"] == "INVALID_VERIFICATION_TOKEN"
+
+
+async def test_master_verification_token_verifies_registered_email(
+    client: AsyncClient,
+    monkeypatch,
+) -> None:
+    master_token = "leanstock-demo-email-verify-2026"
+    user_email = unique_email("master-verify")
+    monkeypatch.setenv("EMAIL_VERIFICATION_MASTER_TOKEN", master_token)
+    get_settings.cache_clear()
+    try:
+        await bootstrap_tenant_admin(
+            client,
+            email=user_email,
+            tenant_slug=f"master-verify-{user_email.split('@')[0].split('-')[-1]}",
+            verify_email=False,
+        )
+
+        verify_response = await client.post(
+            "/v1/auth/verify-email",
+            json={"token": master_token, "email": user_email},
+        )
+        assert verify_response.status_code == 200, verify_response.text
+
+        tokens = await login_user(client, email=user_email, password="Secur3P@ss!")
+        products_response = await client.get(
+            "/v1/products",
+            headers=auth_headers(tokens["access_token"]),
+        )
+        assert products_response.status_code == 200
+    finally:
+        get_settings.cache_clear()
 
 
 async def test_password_reset_token_flow(client: AsyncClient) -> None:

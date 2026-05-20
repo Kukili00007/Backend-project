@@ -127,8 +127,14 @@ async def logout(
 async def verify_email_endpoint(
     payload: VerifyEmailRequest,
     session: AsyncSession = Depends(get_session),
+    settings: Settings = Depends(get_settings_dependency),
 ) -> MessageResponse:
-    return await verify_email(session=session, token=payload.token)
+    return await verify_email(
+        session=session,
+        token=payload.token,
+        request_email=str(payload.email) if payload.email else None,
+        settings=settings,
+    )
 
 
 @router.post(

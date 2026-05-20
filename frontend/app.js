@@ -205,7 +205,7 @@ document.addEventListener("DOMContentLoaded", () => {
       api("/v1/auth/verify-email", {
         method: "POST",
         token: "",
-        body: { token: getValue("verificationToken") }
+        body: { token: getValue("verificationToken"), email: getValue("authEmail") }
       })
     )
   );
@@ -309,7 +309,7 @@ document.addEventListener("DOMContentLoaded", () => {
       api("/v1/auth/verify-email", {
         method: "POST",
         token: "",
-        body: { token: getValue("managerVerificationToken") }
+        body: { token: getValue("managerVerificationToken"), email: getValue("managerEmail") }
       })
     )
   );

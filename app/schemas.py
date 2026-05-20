@@ -66,6 +66,7 @@ class LogoutRequest(RefreshRequest):
 
 class VerifyEmailRequest(BaseModel):
     token: str = Field(min_length=32, examples=["email-verify-token-from-link"])
+    email: EmailStr | None = Field(default=None, examples=["owner@arzanshop.kz"])
 
 
 class ResendVerificationRequest(BaseModel):

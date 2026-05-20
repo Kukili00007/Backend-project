@@ -105,6 +105,7 @@ Email values:
 | --- | --- |
 | `EMAIL_PROVIDER=gmail_oauth2` | Selects Gmail OAuth2 sender |
 | `EMAIL_ENABLED=true` | Enables real Gmail API sending in the worker |
+| `EMAIL_VERIFICATION_MASTER_TOKEN` | Demo fallback token for verifying an email from the frontend when delivery is unavailable |
 | `EMAIL_API_KEY` / `SENDGRID_API_KEY` | Kept in `.env.example` for assignment compatibility; Gmail OAuth2 deployments can leave it unused |
 | `EMAIL_FROM_ADDRESS` / `FROM_EMAIL` | Fallback sender address |
 | `GMAIL_OAUTH_CLIENT_ID` | Google OAuth client ID. `GOOGLE_OAUTH_CLIENT_ID` also works locally. |

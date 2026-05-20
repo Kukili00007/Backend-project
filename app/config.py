@@ -122,6 +122,13 @@ class Settings(BaseSettings):
         default="http://localhost:8000",
         validation_alias=AliasChoices("LEANSTOCK_API_BASE_URL", "API_BASE_URL"),
     )
+    email_verification_master_token: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "LEANSTOCK_EMAIL_VERIFICATION_MASTER_TOKEN",
+            "EMAIL_VERIFICATION_MASTER_TOKEN",
+        ),
+    )
     backend_port: int = Field(default=8000, validation_alias="BACKEND_PORT")
     frontend_port: int = Field(default=3000, validation_alias="FRONTEND_PORT")
     email_verification_token_expire_hours: int = Field(default=24, ge=1)
@@ -137,6 +144,23 @@ class Settings(BaseSettings):
             return []
         if isinstance(value, str):
             return [origin.strip() for origin in value.split(",") if origin.strip()]
+        return value
+
+    @field_validator("email_verification_master_token", mode="before")
+    @classmethod
+    def normalize_optional_secret(cls, value: object) -> str | None:
+        if value is None:
+            return None
+        if isinstance(value, str):
+            token = value.strip()
+            return token or None
+        return str(value)
+
+    @field_validator("email_verification_master_token")
+    @classmethod
+    def validate_optional_secret(cls, value: str | None) -> str | None:
+        if value is not None and len(value) < 32:
+            raise ValueError("EMAIL_VERIFICATION_MASTER_TOKEN must be at least 32 characters.")
         return value
 
     @field_validator("database_url", mode="before")
