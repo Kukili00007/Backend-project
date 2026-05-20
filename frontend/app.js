@@ -45,11 +45,16 @@ function cleanApiBaseUrl(value) {
 }
 
 function resolveApiBaseUrl(value) {
+  // On kazi.rocks, always auto-generate the API URL from the hostname.
+  // This avoids relying on API_BASE_URL being set correctly in the container env.
+  const deployed = deployedApiBaseUrl();
+  if (deployed) return deployed;
+  // Local / custom environments: use the configured value or fallback.
   const configured = cleanApiBaseUrl(value);
   if (configured && (!isLocalApiUrl(configured) || isLocalFrontend())) {
     return configured;
   }
-  return deployedApiBaseUrl() || configured || "http://localhost:8000";
+  return configured || "http://localhost:8000";
 }
 
 const state = {
