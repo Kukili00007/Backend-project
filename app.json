@@ -34,7 +34,7 @@
     },
     "SENDGRID_API_KEY": {
       "description": "SendGrid API key. Get it from sendgrid.com → Settings → API Keys.",
-      "value": "replace-with-sendgrid-api-key"
+      "value": "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"
     },
     "FROM_EMAIL": {
       "description": "Sender email address. Must be verified in SendGrid as Single Sender.",
