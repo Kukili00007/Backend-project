@@ -131,6 +131,18 @@ class Settings(BaseSettings):
         except (TypeError, ValueError):
             return defaults[info.field_name]
 
+    @field_validator("email_provider", mode="before")
+    @classmethod
+    def normalize_email_provider(cls, value: str | None) -> str:
+        if not value:
+            return "sendgrid"
+        v = value.strip().lower()
+        if v in ("sengrid", "send_grid", "sendgrid"):
+            return "sendgrid"
+        if v in ("gmail_oauth2", "gmail", "gmail_oauth"):
+            return "gmail_oauth2"
+        return v
+
     @field_validator("google_oauth_token_uri", mode="before")
     @classmethod
     def normalize_google_oauth_token_uri(cls, value: str | None) -> str:

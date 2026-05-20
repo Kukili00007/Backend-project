@@ -131,6 +131,18 @@ class Settings(BaseSettings):
         except (TypeError, ValueError):
             return defaults[info.field_name]
 
+    @field_validator("email_provider", mode="before")
+    @classmethod
+    def normalize_email_provider(cls, value: str | None) -> str:
+        if not value:
+            return "sendgrid"
+        v = value.strip().lower()
+        if v in ("sengrid", "send_grid", "sendgrid"):
+            return "sendgrid"
+        if v in ("gmail_oauth2", "gmail", "gmail_oauth"):
+            return "gmail_oauth2"
+        return v
+
     @field_validator("google_oauth_token_uri", mode="before")
     @classmethod
     def normalize_google_oauth_token_uri(cls, value: str | None) -> str:
@@ -178,25 +190,4 @@ class Settings(BaseSettings):
 
     @property
     def refresh_token_expire_seconds(self) -> int:
-        return self.refresh_token_expire_days * 24 * 60 * 60
-
-    @property
-    def effective_sender_email(self) -> str:
-        return self.gmail_sender_email or self.from_email
-
-    @property
-    def effective_refresh_secret_key(self) -> str:
-        return self.jwt_refresh_secret_key or self.secret_key
-
-    @property
-    def effective_celery_broker_url(self) -> str:
-        return self.celery_broker_url or self.redis_url
-
-    @property
-    def effective_celery_result_backend(self) -> str:
-        return self.celery_result_backend or self.redis_url
-
-
-@lru_cache
-def get_settings() -> Settings:
-    return Settings()
+        return s
