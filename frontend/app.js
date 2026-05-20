@@ -108,9 +108,11 @@ function renderSession() {
 
 async function api(path, options = {}) {
   const headers = {
-    "Content-Type": "application/json",
     ...(options.headers || {})
   };
+  if (options.body !== undefined) {
+    headers["Content-Type"] = "application/json";
+  }
   const token = options.token === undefined ? state.accessToken : options.token;
   if (token) {
     headers.Authorization = `Bearer ${token}`;
@@ -119,7 +121,7 @@ async function api(path, options = {}) {
   const response = await fetch(`${state.apiBaseUrl}${path}`, {
     ...options,
     headers,
-    body: options.body ? JSON.stringify(options.body) : undefined
+    body: options.body !== undefined ? JSON.stringify(options.body) : undefined
   });
   const text = await response.text();
   const payload = text ? JSON.parse(text) : {};

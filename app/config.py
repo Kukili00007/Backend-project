@@ -3,9 +3,48 @@ from __future__ import annotations
 from decimal import Decimal
 from functools import lru_cache
 from typing import Annotated, Literal
+from urllib.parse import urlsplit
 
 from pydantic import AliasChoices, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
+
+
+def _origin_from_url(value: str | None) -> str | None:
+    if not value:
+        return None
+
+    raw = value.strip()
+    if not raw:
+        return None
+    if "://" not in raw:
+        raw = f"https://{raw}"
+
+    parsed = urlsplit(raw)
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        return None
+
+    host = parsed.hostname.lower()
+    netloc = f"{host}:{parsed.port}" if parsed.port else host
+    return f"{parsed.scheme}://{netloc}"
+
+
+def _deployrocks_frontend_origin(origin: str) -> str | None:
+    parsed = urlsplit(origin)
+    host = parsed.hostname or ""
+    if not host.endswith(".kazi.rocks"):
+        return None
+
+    if host.endswith("-frontend.kazi.rocks"):
+        stem = host.removesuffix("-frontend.kazi.rocks")
+    elif host.endswith("-api.kazi.rocks"):
+        stem = host.removesuffix("-api.kazi.rocks")
+    else:
+        stem = host.removesuffix(".kazi.rocks")
+
+    if not stem:
+        return None
+
+    return f"{parsed.scheme}://{stem}-frontend.kazi.rocks"
 
 
 class Settings(BaseSettings):
@@ -207,6 +246,31 @@ class Settings(BaseSettings):
     @property
     def effective_celery_result_backend(self) -> str:
         return self.celery_result_backend or self.redis_url
+
+    @property
+    def effective_cors_origins(self) -> list[str]:
+        origins: list[str] = []
+
+        def add_origin(origin: str) -> None:
+            if origin not in origins:
+                origins.append(origin)
+
+        for value in [*self.cors_origins, self.frontend_base_url]:
+            origin = _origin_from_url(value)
+            if not origin:
+                continue
+            add_origin(origin)
+            frontend_origin = _deployrocks_frontend_origin(origin)
+            if frontend_origin:
+                add_origin(frontend_origin)
+
+        api_origin = _origin_from_url(self.api_base_url)
+        if api_origin:
+            frontend_origin = _deployrocks_frontend_origin(api_origin)
+            if frontend_origin:
+                add_origin(frontend_origin)
+
+        return origins
 
 
 @lru_cache
