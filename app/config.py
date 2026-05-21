@@ -80,7 +80,7 @@ class Settings(BaseSettings):
         default=None,
         validation_alias=AliasChoices("SENDGRID_API_KEY", "EMAIL_API_KEY"),
     )
-    email_provider: Literal["gmail_oauth2", "sendgrid", "resend"] = "sendgrid"
+    email_provider: Literal["gmail_oauth2", "sendgrid", "resend"] = "gmail_oauth2"
     resend_api_key: str | None = Field(
         default=None,
         validation_alias=AliasChoices("RESEND_API_KEY"),
@@ -202,7 +202,7 @@ class Settings(BaseSettings):
     @classmethod
     def normalize_email_provider(cls, value: str | None) -> str:
         if not value:
-            return "sendgrid"
+            return "gmail_oauth2"
         v = value.strip().lower()
         if v in ("sengrid", "send_grid", "sendgrid"):
             return "sendgrid"

@@ -29,16 +29,11 @@
       "value": "true"
     },
     "EMAIL_PROVIDER": {
-      "description": "Email provider: sendgrid or gmail_oauth2.",
-      "value": "sendgrid"
-    },
-    
-    "SENDGRID_API_KEY": {
-      "description": "SendGrid API key. Get it from sendgrid.com → Settings → API Keys.",
-      "value": "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"
+      "description": "Email provider: gmail_oauth2 or sendgrid. Gmail OAuth2 is the working default — see GMAIL_OAUTH_* env vars set via DeployRocks UI (names with CREDENTIAL avoid auto-regeneration).",
+      "value": "gmail_oauth2"
     },
     "FROM_EMAIL": {
-      "description": "Sender email address. Must be verified in SendGrid as Single Sender.",
+      "description": "Fallback sender email address. Gmail OAuth flow uses GMAIL_SENDER_EMAIL instead.",
       "value": "kukaprokz@gmail.com"
     },
     "FRONTEND_BASE_URL": {
