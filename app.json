@@ -32,10 +32,7 @@
       "description": "Email provider: sendgrid or gmail_oauth2.",
       "value": "sendgrid"
     },
-    "EMAIL_VERIFICATION_MASTER_TOKEN": {
-      "description": "Demo fallback token for email verification when email delivery is unavailable.",
-      "value": "leanstock-demo-email-verify-2026"
-    },
+    
     "SENDGRID_API_KEY": {
       "description": "SendGrid API key. Get it from sendgrid.com → Settings → API Keys.",
       "value": "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"
