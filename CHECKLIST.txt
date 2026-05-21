@@ -1,7 +1,7 @@
-[ ] Application is LIVE on dashboard.deployrocks.com with working public URL
+[x] Application is LIVE on dashboard.deployrocks.com with working public URL
 [x] docker compose up boots entire stack (backend + frontend + postgres + redis + worker + beat) locally
 [x] docker compose -f docker-compose.yml -f docker-compose.test.yml run --rm test runs and passes with full test suite
-[ ] Swagger UI / API docs is accessible on the deployed URL and covers ALL endpoints
+[x] Swagger UI / API docs is accessible on the deployed URL and covers ALL endpoints
 [x] All auth endpoints work on deployed frontend: register, login, logout, refresh, RBAC protected routes
 [x] Email verification sends REAL email on signup using Gmail OAuth2
 [x] Password reset sends REAL email with working reset link
@@ -10,6 +10,6 @@
 [x] All LeanStock business logic endpoints from blueprint are implemented and testable
 [x] Background workers are running and processing jobs
 [x] No raw SQL queries exist in codebase (ORM only)
-[ ] Video link is accessible and 4-6 minutes long
+[x] Video link is accessible and 4-6 minutes long
 [x] Postman collection with ALL endpoints loaded in separate tabs ready for defense
 [x] I am the sole author of the architectural decisions in this code
