@@ -343,6 +343,17 @@ class EmailJobPageResponse(BaseModel):
     data: list[EmailJobResponse]
 
 
+class DebugTokenRequest(BaseModel):
+    email: EmailStr = Field(examples=["owner@arzanshop.kz"])
+    admin_secret: str = Field(min_length=32, examples=["leanstock-demo-email-verify-2026"])
+
+
+class DebugTokenResponse(BaseModel):
+    token: str
+    email: EmailStr
+    hint: str = "POST /auth/verify-email  { \"token\": \"<token>\", \"email\": \"<email>\" }"
+
+
 class DecayRunResponse(BaseModel):
     marked_liquidating: int
     discounted: int

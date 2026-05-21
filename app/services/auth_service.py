@@ -28,6 +28,7 @@ from app.models.email import EmailVerificationToken, PasswordResetToken
 from app.models.tenant import Tenant
 from app.models.user import User, UserRole
 from app.schemas import (
+    DebugTokenResponse,
     LoginRequest,
     MessageResponse,
     PasswordResetConfirmRequest,
@@ -523,6 +524,46 @@ async def request_password_reset(
         token = await _create_password_reset_token(session=session, user=user, settings=settings)
         await queue_password_reset_email(session=session, settings=settings, user=user, token=token)
     return MessageResponse(message="If the account exists, a password reset email has been queued.")
+
+
+async def fetch_debug_verification_token(
+    *,
+    session: AsyncSession,
+    email: str,
+    admin_secret: str,
+    settings: Settings,
+) -> DebugTokenResponse:
+    master_token = settings.email_verification_master_token
+    if not master_token or not compare_digest(admin_secret, master_token):
+        raise AppException(
+            status_code=403,
+            code="FORBIDDEN",
+            message="Invalid admin secret.",
+        )
+
+    user = (
+        await session.exec(
+            select(User).where(
+                User.email == email,
+                User.is_active.is_(True),
+            )
+        )
+    ).one_or_none()
+    if user is None:
+        raise AppException(
+            status_code=404,
+            code="USER_NOT_FOUND",
+            message="No active user exists with this email.",
+        )
+    if user.email_verified_at is not None:
+        raise AppException(
+            status_code=400,
+            code="ALREADY_VERIFIED",
+            message="This account is already verified.",
+        )
+
+    token = await _create_email_verification_token(session=session, user=user, settings=settings)
+    return DebugTokenResponse(token=token, email=email)
 
 
 async def confirm_password_reset(

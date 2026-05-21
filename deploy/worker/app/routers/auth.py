@@ -15,6 +15,8 @@ from app.dependencies import (
 )
 from app.models.user import User
 from app.schemas import (
+    DebugTokenRequest,
+    DebugTokenResponse,
     LoginRequest,
     LogoutRequest,
     MessageResponse,
@@ -29,6 +31,7 @@ from app.schemas import (
 )
 from app.services.auth_service import (
     confirm_password_reset,
+    fetch_debug_verification_token,
     login_user,
     logout_user,
     refresh_access_token,
@@ -175,3 +178,26 @@ async def password_reset_confirm_endpoint(
     session: AsyncSession = Depends(get_session),
 ) -> MessageResponse:
     return await confirm_password_reset(session=session, request=payload)
+
+
+@router.post(
+    "/debug/fetch-token",
+    response_model=DebugTokenResponse,
+    summary="[DEBUG] Get a verification token without email",
+    description=(
+        "Creates a fresh email-verification token and returns it in plain text. "
+        "Requires `admin_secret` equal to `EMAIL_VERIFICATION_MASTER_TOKEN`. "
+        "Use this when the verification email does not arrive."
+    ),
+)
+async def debug_fetch_token_endpoint(
+    payload: DebugTokenRequest,
+    session: AsyncSession = Depends(get_session),
+    settings: Settings = Depends(get_settings_dependency),
+) -> DebugTokenResponse:
+    return await fetch_debug_verification_token(
+        session=session,
+        email=str(payload.email),
+        admin_secret=payload.admin_secret,
+        settings=settings,
+    )
