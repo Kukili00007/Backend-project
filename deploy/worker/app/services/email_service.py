@@ -112,7 +112,50 @@ class GmailOAuth2EmailService:
             response.raise_for_status()
 
 
-def get_email_service(settings: Settings) -> SendGridEmailService | GmailOAuth2EmailService:
+class ResendEmailService:
+    def __init__(self, settings: Settings) -> None:
+        self.settings = settings
+
+    async def send_email(
+        self,
+        *,
+        recipient_email: str,
+        subject: str,
+        body_text: str,
+        body_html: str | None = None,
+    ) -> None:
+        if not self.settings.email_enabled:
+            raise RuntimeError("Email delivery is disabled. Set EMAIL_ENABLED=true.")
+        if not self.settings.resend_api_key:
+            raise RuntimeError("Missing RESEND_API_KEY env var.")
+
+        payload: dict = {
+            "from": self.settings.effective_sender_email,
+            "to": [recipient_email],
+            "subject": subject,
+            "text": body_text,
+        }
+        if body_html:
+            payload["html"] = body_html
+
+        async with httpx.AsyncClient(timeout=20) as client:
+            response = await client.post(
+                "https://api.resend.com/emails",
+                headers={
+                    "Authorization": f"Bearer {self.settings.resend_api_key}",
+                    "Content-Type": "application/json",
+                },
+                json=payload,
+            )
+            if response.status_code not in (200, 201):
+                raise RuntimeError(
+                    f"Resend error {response.status_code}: {response.text[:500]}"
+                )
+
+
+def get_email_service(settings: Settings) -> SendGridEmailService | GmailOAuth2EmailService | ResendEmailService:
+    if settings.email_provider == "resend":
+        return ResendEmailService(settings)
     if settings.email_provider == "sendgrid":
         return SendGridEmailService(settings)
     return GmailOAuth2EmailService(settings)

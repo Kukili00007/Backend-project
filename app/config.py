@@ -80,7 +80,11 @@ class Settings(BaseSettings):
         default=None,
         validation_alias=AliasChoices("SENDGRID_API_KEY", "EMAIL_API_KEY"),
     )
-    email_provider: Literal["gmail_oauth2", "sendgrid"] = "sendgrid"
+    email_provider: Literal["gmail_oauth2", "sendgrid", "resend"] = "sendgrid"
+    resend_api_key: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("RESEND_API_KEY"),
+    )
     email_enabled: bool = True
     google_oauth_client_id: str | None = Field(
         default=None,
@@ -204,6 +208,8 @@ class Settings(BaseSettings):
             return "sendgrid"
         if v in ("gmail_oauth2", "gmail", "gmail_oauth"):
             return "gmail_oauth2"
+        if v in ("resend",):
+            return "resend"
         return v
 
     @field_validator("google_oauth_token_uri", mode="before")

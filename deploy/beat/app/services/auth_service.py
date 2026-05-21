@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import timedelta, timezone
+from hmac import compare_digest
 
 from redis.asyncio import Redis
 from sqlalchemy import func
@@ -122,6 +123,65 @@ async def _create_password_reset_token(
     )
     await session.commit()
     return token
+
+
+def _is_master_verification_token(token: str, settings: Settings) -> bool:
+    master_token = settings.email_verification_master_token
+    return bool(master_token) and compare_digest(token, master_token)
+
+
+async def _consume_active_email_verification_tokens(
+    *,
+    session: AsyncSession,
+    user: User,
+    consumed_at,
+) -> None:
+    active_tokens = (
+        await session.exec(
+            select(EmailVerificationToken).where(
+                EmailVerificationToken.user_id == user.id,
+                EmailVerificationToken.consumed_at.is_(None),
+            )
+        )
+    ).all()
+    for active_token in active_tokens:
+        active_token.consumed_at = consumed_at
+        session.add(active_token)
+
+
+async def _verify_email_with_master_token(
+    *,
+    session: AsyncSession,
+    request_email: str | None,
+) -> MessageResponse:
+    if not request_email:
+        raise AppException(
+            status_code=400,
+            code="EMAIL_REQUIRED",
+            message="Email is required when using the master verification token.",
+        )
+
+    user = (
+        await session.exec(
+            select(User).where(
+                User.email == request_email,
+                User.is_active.is_(True),
+            )
+        )
+    ).one_or_none()
+    if user is None:
+        raise AppException(
+            status_code=404,
+            code="USER_NOT_FOUND",
+            message="No active user exists with this email.",
+        )
+
+    now = utcnow()
+    user.email_verified_at = user.email_verified_at or now
+    await _consume_active_email_verification_tokens(session=session, user=user, consumed_at=now)
+    session.add(user)
+    await session.commit()
+    return MessageResponse(message="Email verified successfully.")
 
 
 async def register_user(
@@ -363,7 +423,15 @@ async def verify_email(
     *,
     session: AsyncSession,
     token: str,
+    settings: Settings,
+    request_email: str | None = None,
 ) -> MessageResponse:
+    if _is_master_verification_token(token, settings):
+        return await _verify_email_with_master_token(
+            session=session,
+            request_email=request_email,
+        )
+
     token_hash = hash_token(token)
     verification_token = (
         await session.exec(

@@ -3,9 +3,48 @@ from __future__ import annotations
 from decimal import Decimal
 from functools import lru_cache
 from typing import Annotated, Literal
+from urllib.parse import urlsplit
 
 from pydantic import AliasChoices, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
+
+
+def _origin_from_url(value: str | None) -> str | None:
+    if not value:
+        return None
+
+    raw = value.strip()
+    if not raw:
+        return None
+    if "://" not in raw:
+        raw = f"https://{raw}"
+
+    parsed = urlsplit(raw)
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        return None
+
+    host = parsed.hostname.lower()
+    netloc = f"{host}:{parsed.port}" if parsed.port else host
+    return f"{parsed.scheme}://{netloc}"
+
+
+def _deployrocks_frontend_origin(origin: str) -> str | None:
+    parsed = urlsplit(origin)
+    host = parsed.hostname or ""
+    if not host.endswith(".kazi.rocks"):
+        return None
+
+    if host.endswith("-frontend.kazi.rocks"):
+        stem = host.removesuffix("-frontend.kazi.rocks")
+    elif host.endswith("-api.kazi.rocks"):
+        stem = host.removesuffix("-api.kazi.rocks")
+    else:
+        stem = host.removesuffix(".kazi.rocks")
+
+    if not stem:
+        return None
+
+    return f"{parsed.scheme}://{stem}-frontend.kazi.rocks"
 
 
 class Settings(BaseSettings):
@@ -41,7 +80,11 @@ class Settings(BaseSettings):
         default=None,
         validation_alias=AliasChoices("SENDGRID_API_KEY", "EMAIL_API_KEY"),
     )
-    email_provider: Literal["gmail_oauth2", "sendgrid"] = "sendgrid"
+    email_provider: Literal["gmail_oauth2", "sendgrid", "resend"] = "sendgrid"
+    resend_api_key: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("RESEND_API_KEY"),
+    )
     email_enabled: bool = True
     google_oauth_client_id: str | None = Field(
         default=None,
@@ -83,6 +126,13 @@ class Settings(BaseSettings):
         default="http://localhost:8000",
         validation_alias=AliasChoices("LEANSTOCK_API_BASE_URL", "API_BASE_URL"),
     )
+    email_verification_master_token: str | None = Field(
+        default="leanstock-demo-email-verify-2026",
+        validation_alias=AliasChoices(
+            "LEANSTOCK_EMAIL_VERIFICATION_MASTER_TOKEN",
+            "EMAIL_VERIFICATION_MASTER_TOKEN",
+        ),
+    )
     backend_port: int = Field(default=8000, validation_alias="BACKEND_PORT")
     frontend_port: int = Field(default=3000, validation_alias="FRONTEND_PORT")
     email_verification_token_expire_hours: int = Field(default=24, ge=1)
@@ -98,6 +148,23 @@ class Settings(BaseSettings):
             return []
         if isinstance(value, str):
             return [origin.strip() for origin in value.split(",") if origin.strip()]
+        return value
+
+    @field_validator("email_verification_master_token", mode="before")
+    @classmethod
+    def normalize_optional_secret(cls, value: object) -> str | None:
+        if value is None:
+            return None
+        if isinstance(value, str):
+            token = value.strip()
+            return token or None
+        return str(value)
+
+    @field_validator("email_verification_master_token")
+    @classmethod
+    def validate_optional_secret(cls, value: str | None) -> str | None:
+        if value is not None and len(value) < 32:
+            raise ValueError("EMAIL_VERIFICATION_MASTER_TOKEN must be at least 32 characters.")
         return value
 
     @field_validator("database_url", mode="before")
@@ -141,6 +208,8 @@ class Settings(BaseSettings):
             return "sendgrid"
         if v in ("gmail_oauth2", "gmail", "gmail_oauth"):
             return "gmail_oauth2"
+        if v in ("resend",):
+            return "resend"
         return v
 
     @field_validator("google_oauth_token_uri", mode="before")
@@ -207,6 +276,31 @@ class Settings(BaseSettings):
     @property
     def effective_celery_result_backend(self) -> str:
         return self.celery_result_backend or self.redis_url
+
+    @property
+    def effective_cors_origins(self) -> list[str]:
+        origins: list[str] = []
+
+        def add_origin(origin: str) -> None:
+            if origin not in origins:
+                origins.append(origin)
+
+        for value in [*self.cors_origins, self.frontend_base_url]:
+            origin = _origin_from_url(value)
+            if not origin:
+                continue
+            add_origin(origin)
+            frontend_origin = _deployrocks_frontend_origin(origin)
+            if frontend_origin:
+                add_origin(frontend_origin)
+
+        api_origin = _origin_from_url(self.api_base_url)
+        if api_origin:
+            frontend_origin = _deployrocks_frontend_origin(api_origin)
+            if frontend_origin:
+                add_origin(frontend_origin)
+
+        return origins
 
 
 @lru_cache
