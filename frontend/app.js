@@ -635,6 +635,10 @@ document.addEventListener("DOMContentLoaded", () => {
     run("List Email Jobs", () => api("/v1/admin/email-jobs"))
   );
 
+  $("listAuditLogs").addEventListener("click", () =>
+    run("List Audit Logs", () => api("/v1/admin/audit-logs?limit=50"))
+  );
+
   $("triggerDecay").addEventListener("click", () =>
     run("Trigger Decay", () => api("/v1/admin/decay/run", { method: "POST" }))
   );

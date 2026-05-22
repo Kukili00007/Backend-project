@@ -8,7 +8,8 @@ from app.core.rbac import require_roles
 from app.database import get_session
 from app.dependencies import get_settings_dependency
 from app.models.user import User, UserRole
-from app.schemas import DecayRunResponse, EmailJobPageResponse
+from app.schemas import AuditLogPageResponse, DecayRunResponse, EmailJobPageResponse
+from app.services.audit_service import list_audit_logs
 from app.services.decay_service import run_decay_cycle
 from app.services.email_job_service import list_email_jobs
 
@@ -44,4 +45,32 @@ async def run_decay_now(
     return DecayRunResponse(
         marked_liquidating=result.marked_liquidating,
         discounted=result.discounted,
+    )
+
+
+@router.get(
+    "/audit-logs",
+    response_model=AuditLogPageResponse,
+    summary="List audit log entries for the current tenant",
+    description=(
+        "Returns audit log rows captured by the service layer (warehouse, product, "
+        "inventory, transfer, and procurement mutations). Newest entries are returned first. "
+        "Supports optional filters on `entity_type` and `action`."
+    ),
+)
+async def read_audit_logs(
+    cursor: str | None = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=100),
+    entity_type: str | None = Query(default=None, max_length=50),
+    action: str | None = Query(default=None, max_length=100),
+    current_user: User = Depends(require_roles(UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN)),
+    session: AsyncSession = Depends(get_session),
+) -> AuditLogPageResponse:
+    return await list_audit_logs(
+        session=session,
+        tenant_id=current_user.tenant_id,
+        cursor=cursor,
+        limit=limit,
+        entity_type=entity_type,
+        action=action,
     )

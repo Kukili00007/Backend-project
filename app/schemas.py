@@ -343,6 +343,27 @@ class EmailJobPageResponse(BaseModel):
     data: list[EmailJobResponse]
 
 
+class AuditLogResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    tenant_id: uuid.UUID
+    user_id: uuid.UUID
+    action: str
+    entity_type: str
+    entity_id: uuid.UUID
+    before_state: dict | None = None
+    after_state: dict | None = None
+    created_at: datetime
+
+
+class AuditLogPageResponse(BaseModel):
+    next_cursor: str | None
+    has_more: bool
+    total_count: int
+    data: list[AuditLogResponse]
+
+
 class DebugTokenRequest(BaseModel):
     email: EmailStr = Field(examples=["owner@arzanshop.kz"])
     admin_secret: str = Field(min_length=32, examples=["leanstock-demo-email-verify-2026"])
