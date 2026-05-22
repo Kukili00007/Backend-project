@@ -166,6 +166,24 @@ function authBody(role = "tenant_admin") {
   return body;
 }
 
+function compactPatch(fields) {
+  const body = {};
+  for (const [key, value] of Object.entries(fields)) {
+    if (value === undefined || value === null) continue;
+    if (typeof value === "string" && value.trim() === "") continue;
+    if (typeof value === "number" && Number.isNaN(value)) continue;
+    body[key] = value;
+  }
+  return body;
+}
+
+function numberValueOrUndefined(id) {
+  const raw = getValue(id);
+  if (raw === "") return undefined;
+  const num = Number(raw);
+  return Number.isNaN(num) ? undefined : num;
+}
+
 function productBody(sku = getValue("sku")) {
   return {
     name: getValue("productName"),
@@ -361,12 +379,23 @@ document.addEventListener("DOMContentLoaded", () => {
   );
 
   $("updateWarehouseA").addEventListener("click", () =>
-    run("Update Warehouse A", () =>
-      api(`/v1/warehouses/${getValue("sourceWarehouseId")}`, {
+    run("Update Warehouse A", () => {
+      const body = compactPatch({
+        name: getValue("warehouseUpdateName"),
+        location: getValue("warehouseUpdateLocation")
+      });
+      if (Object.keys(body).length === 0) {
+        return Promise.reject(
+          Object.assign(new Error("Fill at least one update field"), {
+            payload: { message: "Provide a new name or location to update." }
+          })
+        );
+      }
+      return api(`/v1/warehouses/${getValue("sourceWarehouseId")}`, {
         method: "PATCH",
-        body: { location: "Almaty, updated" }
-      })
-    )
+        body
+      });
+    })
   );
 
   $("listWarehouses").addEventListener("click", () =>
@@ -383,21 +412,45 @@ document.addEventListener("DOMContentLoaded", () => {
   );
 
   $("updateProduct").addEventListener("click", () =>
-    run("Update Product", () =>
-      api(`/v1/products/${getValue("productId")}`, {
+    run("Update Product", () => {
+      const body = compactPatch({
+        name: getValue("productUpdateName"),
+        category: getValue("productUpdateCategory")
+      });
+      if (Object.keys(body).length === 0) {
+        return Promise.reject(
+          Object.assign(new Error("Fill at least one update field"), {
+            payload: { message: "Provide a new name or category to update." }
+          })
+        );
+      }
+      return api(`/v1/products/${getValue("productId")}`, {
         method: "PATCH",
-        body: { category: "Apparel" }
-      })
-    )
+        body
+      });
+    })
   );
 
   $("updateVariant").addEventListener("click", () =>
-    run("Update Variant", () =>
-      api(`/v1/products/variants/${getValue("variantId")}`, {
+    run("Update Variant", () => {
+      const body = compactPatch({
+        color: getValue("variantUpdateColor"),
+        size: getValue("variantUpdateSize"),
+        selling_price: numberValueOrUndefined("variantUpdateSellingPrice"),
+        liquidation_floor_price: numberValueOrUndefined("variantUpdateFloorPrice")
+      });
+      if (Object.keys(body).length === 0) {
+        return Promise.reject(
+          Object.assign(new Error("Fill at least one update field"), {
+            payload: { message: "Provide at least one variant field to update." }
+          })
+        );
+      }
+      return api(`/v1/products/variants/${getValue("variantId")}`, {
         method: "PATCH",
-        body: { selling_price: 4790, liquidation_floor_price: 2990 }
-      })
-    )
+        body
+      });
+    })
   );
 
   $("listProducts").addEventListener("click", () => run("List Products", () => api("/v1/products")));
@@ -512,12 +565,25 @@ document.addEventListener("DOMContentLoaded", () => {
   );
 
   $("updateSupplier").addEventListener("click", () =>
-    run("Update Supplier", () =>
-      api(`/v1/suppliers/${getValue("supplierId")}`, {
+    run("Update Supplier", () => {
+      const body = compactPatch({
+        name: getValue("supplierUpdateName"),
+        contact_email: getValue("supplierUpdateEmail"),
+        phone: getValue("supplierUpdatePhone"),
+        lead_time_days: numberValueOrUndefined("supplierUpdateLeadTime")
+      });
+      if (Object.keys(body).length === 0) {
+        return Promise.reject(
+          Object.assign(new Error("Fill at least one update field"), {
+            payload: { message: "Provide at least one supplier field to update." }
+          })
+        );
+      }
+      return api(`/v1/suppliers/${getValue("supplierId")}`, {
         method: "PATCH",
-        body: { lead_time_days: numberValue("supplierLeadTime") + 1 }
-      })
-    )
+        body
+      });
+    })
   );
 
   $("listSuppliers").addEventListener("click", () => run("List Suppliers", () => api("/v1/suppliers")));

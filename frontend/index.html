@@ -82,6 +82,11 @@
           <label>Source warehouse id <input id="sourceWarehouseId" /></label>
           <label>Destination warehouse id <input id="destinationWarehouseId" /></label>
         </div>
+        <p class="hint">Update A uses fields below — leave empty to keep current value.</p>
+        <div class="grid two">
+          <label>Update: new name <input id="warehouseUpdateName" placeholder="e.g. Almaty Hub" /></label>
+          <label>Update: new location <input id="warehouseUpdateLocation" placeholder="e.g. Almaty, KZ" /></label>
+        </div>
         <div class="actions">
           <button id="createWarehouseA" type="button">Create A</button>
           <button id="createWarehouseB" type="button">Create B</button>
@@ -97,6 +102,15 @@
           <label>Variant id <input id="variantId" /></label>
           <label>Product name <input id="productName" value="Classic T-Shirt" /></label>
           <label>SKU <input id="sku" value="TSHIRT-FINAL-1" /></label>
+        </div>
+        <p class="hint">Update Product / Variant — leave fields empty to keep current values.</p>
+        <div class="grid two">
+          <label>Product: new name <input id="productUpdateName" placeholder="e.g. Premium T-Shirt" /></label>
+          <label>Product: new category <input id="productUpdateCategory" placeholder="e.g. Apparel" /></label>
+          <label>Variant: new color <input id="variantUpdateColor" placeholder="e.g. Blue" /></label>
+          <label>Variant: new size <input id="variantUpdateSize" placeholder="e.g. M" /></label>
+          <label>Variant: selling price <input id="variantUpdateSellingPrice" type="number" step="0.01" placeholder="e.g. 5990" /></label>
+          <label>Variant: floor price <input id="variantUpdateFloorPrice" type="number" step="0.01" placeholder="e.g. 3490" /></label>
         </div>
         <div class="actions">
           <button id="createProduct" type="button">Create Product</button>
@@ -147,6 +161,13 @@
           <label>Supplier name <input id="supplierName" value="Almaty Textile Supply" /></label>
           <label>Supplier email <input id="supplierEmail" value="kukaprokz+supplierfinal1@gmail.com" /></label>
           <label>Lead time <input id="supplierLeadTime" type="number" value="5" /></label>
+        </div>
+        <p class="hint">Update Supplier — leave fields empty to keep current values.</p>
+        <div class="grid two">
+          <label>Update: new name <input id="supplierUpdateName" placeholder="e.g. Astana Textile" /></label>
+          <label>Update: new email <input id="supplierUpdateEmail" placeholder="e.g. new@supplier.kz" /></label>
+          <label>Update: new phone <input id="supplierUpdatePhone" placeholder="e.g. +77001112233" /></label>
+          <label>Update: lead time days <input id="supplierUpdateLeadTime" type="number" placeholder="e.g. 10" /></label>
         </div>
         <div class="actions">
           <button id="createSupplier" type="button">Create Supplier</button>
